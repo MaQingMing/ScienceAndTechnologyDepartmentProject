@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.HonorApplyInfoMapper">
+    <select id="selectByPage" resultType="com.yc.apply.entity.HonorApplyInfo">
+        select *
+        from honor_apply_info ${ew.customSqlSegment}
+    </select>
+    <select id="queryHonorTypes" resultType="java.lang.String">
+        select distinct type
+        from honor_apply_info
+    </select>
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--荣誉主键，荣誉类别，批准单位，荣誉计分-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.HonorHisPage">
+        SELECT
+        distinct hai.haiid,
+        hai.dept,
+        hai.gaid,
+        hai.name,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        (SELECT GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`)) FROM
+        score_apply_info sai WHERE ga.gaid = sai.gaid ) scoreInfo,
+        (select tname from labeldept where tid = (select tid from systemuser where id = ga.sid)) user_dept,
+        (SELECT CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`) FROM score_apply_info sai
+        WHERE ga.gaid = sai.gaid) scoreInfo,
+        ( SELECT cash FROM (SELECT cash,max( score ) FROM honor_standard hs WHERE
+        FIND_IN_SET( hs.hsid, ga.childid )) s) cash,
+        ga.sid,
+        ga.according,
+        ga.date time,
+        ga.remarks,
+        (select lname from tech_results_level where leid = (select leid from invent_standard where iid = ga.childid))
+        level,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        ( SELECT s.nickname FROM systemuser s WHERE s.id = ga.sid ) username,
+        CASE WHEN ga.team = 1 THEN '是'
+        WHEN ga.team = 0 THEN '否' ELSE NULL
+        END team,
+        CASE WHEN ga.recordid IS NULL then NULL
+        ELSE (SELECT r.`name` FROM record r WHERE
+        ga.recordid = r.id
+        AND r.`status` = 1
+        AND r.team_id = ga.sid) END rname,
+        ga.recordid
+        FROM
+        honor_apply_info hai,
+        gain_apply ga,
+        record r
+        WHERE
+        hai.gaid = ga.gaid
+        AND ga.trtid = 8
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct ga.gaid)
+        FROM
+        honor_apply_info hai,
+        gain_apply ga,
+        record r
+        WHERE
+        hai.gaid = ga.gaid
+        AND ga.trtid = 8
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != null and status != ""'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='dept!="" and dept != null and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query == "") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( hs.posit )
+            FROM
+            honor_standard hs
+            WHERE
+            FIND_IN_SET( hs.hsid, ga.childid )))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != null and identifier == "1" and isDept == "0"'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (hai.type LIKE concat( '%', #{commonLike}, '%' )
+            OR hai.dept LIKE concat( '%', #{commonLike}, '%' ))
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( hs.leid )
+            FROM
+            honor_standard hs
+            WHERE
+            FIND_IN_SET( hs.hsid, ga.childid )))))
+        </if>
+        <if test='identifier == "0"'>
+            AND #{userId} = ga.sid
+        </if>
+    </sql>
+
+    <!-- 添加纵向项目 -->
+    <insert id="addDirection">
+        insert into direction_standard (leid, context, remarks, status, posit, trid)
+        values (#{leid}, #{remarks}, #{context}, #{status}, #{posit}, #{trid})
+    </insert>
+    <insert id="insertBatch">
+        insert into honor_apply_info(gaid,name,type, dept, create_by, create_time)
+        values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.gaid},#{item.name},#{item.type},#{item.dept},#{user},now())
+        </foreach>
+    </insert>
+    <insert id="addHonor">
+        insert into honor_apply_info (gaid, name, type, dept, according, create_by,
+                                      create_time)
+        values (#{gaid}, #{name}, #{type}, #{dept}, #{remarks}, #{createBy}, now())
+    </insert>
+
+    <!-- 查询纵向项目 -->
+    <select id="selectDirection" resultType="com.yc.vo.EditProject">
+        select d.dsid id,
+               l.lname,
+               l.leid,
+               d.context,
+               d.found_score,
+               d.remarks,
+               d.posit,
+               d.status
+        from direction_standard d,
+             tech_results_level l
+        where d.leid = l.leid
+    </select>
+
+    <!-- 修改纵向项目 -->
+    <update id="updateDirection">
+        update direction_standard
+        set leid    = #{leid},
+            context = #{score},
+            remarks = #{remarks},
+            status  = #{status},
+            posit   = #{posit},
+            trid    = #{trid}
+        where dsid = #{id}
+    </update>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid} and sysid = #{sid}
+    </update>
+
+</mapper>

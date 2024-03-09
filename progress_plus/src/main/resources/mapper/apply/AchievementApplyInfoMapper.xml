@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.AchievementApplyInfoMapper">
+    <insert id="insertBatch">
+        insert into achievement_apply_info(content, dept, `name`, `level`,
+        gaid, first_sign,school_order,workers_order, create_by,create_time)
+        values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.content}, #{item.dept}, #{item.name}, #{item.level},
+            #{item.gaid}, #{item.firstSign}, #{item.schoolOrder},#{item.workersOrder},
+            #{user}, now())
+        </foreach>
+
+    </insert>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid} and sysid = #{sid}
+    </update>
+    <select id="selectByPage" resultType="com.yc.apply.entity.AchievementApplyInfo">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryAchieventmentLevels" resultType="java.lang.String">
+        select distinct level
+        from achievement_apply_info
+    </select>
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--论文主键，成果奖主键，成果奖获奖形式及内容，批准单位，获奖项目名称，是否可以换钱，论文计分-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.AchievementHisPage">
+        SELECT
+        distinct aai.aaiid,
+        aai.`name`,
+        aai.content,
+        aai.dept,
+        aai.gaid,
+        aai.school_order,
+        aai.workers_order,
+        aai.first_sign,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        (select GROUP_CONCAT(context) from achievement_standard where find_in_set(asid,ga.childid)) level,
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        (select tname from labeldept where tid = (select tid from systemuser where id = ga.sid)) user_dept,
+        ( SELECT cash FROM (SELECT cash,
+        max( score ) FROM
+        achievement_standard ass WHERE
+        FIND_IN_SET( ass.asid, ga.childid )) s) cash,
+        (SELECT GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`)) FROM
+        score_apply_info sai WHERE ga.gaid = sai.gaid ) scoreInfo,
+        ga.according,
+        ga.sid,
+        ga.team,
+        ga.date time,
+        ga.remarks,
+        ( select GROUP_CONCAT(lname) from tech_results_level where FIND_IN_SET(leid,(SELECT
+        GROUP_CONCAT(distinct leid) FROM achievement_standard ass WHERE
+        FIND_IN_SET( asid, ga.childid )))) grade,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        (select nickname from systemuser where id = ga.sid) username,
+        CASE WHEN ga.team = 1 THEN '是'
+        WHEN ga.team = 0 THEN
+        '否' ELSE NULL END team, CASE
+        WHEN ga.recordid IS NULL then NULL ELSE (
+        SELECT r.`name` FROM record r
+        WHERE ga.recordid = r.id AND r.`status` = 1
+        AND (( ga.team = 1 and find_in_set(ga.sid,r.team_id))
+        OR ( ga.team = 0 AND ga.sid = r.team_id ))) END rname, ga.recordid
+        FROM achievement_apply_info aai, gain_apply ga,
+        record r WHERE aai.gaid = ga.gaid
+        AND ga.trtid = 3
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct ga.gaid)
+        FROM
+        achievement_apply_info aai,
+        gain_apply ga,
+        record r
+        WHERE
+        aai.gaid = ga.gaid
+        AND ga.trtid = 3
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != null and status != ""'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='dept!="" and dept != null and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query == "") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( ass.posit )
+            FROM
+            achievement_standard ass
+            WHERE
+            FIND_IN_SET( ass.asid, ga.childid )))
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and (query == null or query == "")'>
+            AND FIND_IN_SET(
+            #{college},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            achievement_apply_info aai,
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != null and identifier == "1" and (query == null or query == "") and isDept == "0"'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='dept!="" and dept != null and isDept == "0" and identifier == "1" and (query == null or query == "")'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (aai.`name` LIKE concat( '%', #{commonLike}, '%' )
+            OR aai.dept LIKE concat( '%', #{commonLike}, '%' )
+            OR aai.level LIKE concat(
+            '%',
+            #{commonLike},
+            '%'))
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( ass.leid )
+            FROM
+            achievement_standard ass
+            WHERE
+            FIND_IN_SET( ass.asid, ga.childid )))))
+        </if>
+        <if test='identifier == "0"'>
+            AND ((FIND_IN_SET(#{userId},(select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid =
+            ga.gaid)) and ga.team = 1) or (ga.team = 0 and ga.sid = #{userId}))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+    </sql>
+
+    <insert id="addAchievement">
+        INSERT INTO achievement_apply_info(content,dept,`name`,`level`,according,gaid,first_sign,create_time,create_by,update_by,update_time,school_order,workers_order)
+        VALUES (#{awardContent},#{dept},#{name},#{level},#{according},#{gaid},#{firstSign},now(),#{createBy},#{updateBy},now(),#{xmschoolorder},#{xmworkersorder})
+    </insert>
+</mapper>

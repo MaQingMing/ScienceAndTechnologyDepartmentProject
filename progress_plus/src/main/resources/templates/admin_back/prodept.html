@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<style rel="stylesheet" type="text/css" >#right{float: right;}</style>
+<!-- 部门管理 -->
+<body>
+<div id="app">
+    <template>
+        <div>
+            <el-button size="small"  type="primary" @click="agreeAdd()" style="margin: 0px 10px 15px">新增部门 | 学院</el-button>
+            <el-dialog title="新增部门 | 学院" :visible.sync="addDialogFormVisible" :close-on-click-modal="false"
+                       :close-on-press-escape="false" width="520px">
+                <el-form label-width="120px"  label-position="left" ref="ruleForm" :model="ruleForm">
+                    <el-form-item label="部门|学院名称" prop="tname">
+                        <el-input placeholder="请输入部门|学院名称" type="text" v-model="ruleForm.tname"></el-input>
+                    </el-form-item>
+                    <el-form-item label="科技分认定部门" prop="tname">
+                        <el-switch v-model="ruleForm.status" active-text="是" inactive-text="否">
+                        </el-switch>
+                    </el-form-item>
+                    <el-form-item label="类型(自科|社科)" prop="tscience">
+                        <el-select v-model="ruleForm.tscience" style="width: 360px;" placeholder="请选择(自科|社科)">
+                            <el-option  key="1" label="自然科学" value="1"></el-option>
+                            <el-option  key="2" label="社会科学" value="2"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <p style="color: #909399;">温馨提示: 部门可以不用设置 类型(自科|社科)</p>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button size="small" type="primary" @click="addDepartment('ruleForm')">确 定</el-button>
+                    <el-button size="small" @click="addDialogFormVisible = false">取 消</el-button>
+                </div>
+            </el-dialog>
+
+            <div style="margin-top: -35px;">
+                <el-divider></el-divider>
+            </div>
+            <el-table ref="multipleTable" v-loading="loading" border stripe
+                      :data="tableData.slice((currentPage - 1) * pageSize, currentPage * pageSize)"
+                      tooltip-effect="dark" style="width: 100%;border: 1px;margin-top: -20px;">
+                <el-table-column fixed width="100" label="#" align="center">
+                    <template slot-scope="scope"><span>{{scope.$index+(currentPage - 1)*pageSize + 1}}</span></template>
+                </el-table-column>
+                <el-table-column prop="tname" label="名称" min-width="20%" align="center"></el-table-column>
+                <el-table-column prop="status" label="科技分认定部门" width="130" align="center">
+                    <template slot-scope="scope">
+                        <span v-if="scope.row.status==1"><el-tag type="danger">是</el-tag></span>
+                        <span v-else-if="scope.row.status==0"><el-tag type="info">否</el-tag></span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="tscience" label="类型(自科|社科)" width="130" align="center">
+                    <template slot-scope="scope">
+                        <span v-if="scope.row.tscience==1"><el-tag>自然科学</el-tag></span>
+                        <span v-else-if="scope.row.tscience==2"><el-tag type="success">社会科学</el-tag></span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column fixed="right" label="操作" width="260" align="center">
+                    <template slot-scope="scope">
+                        <el-button size="small" type="primary" icon="el-icon-edit" @click="undataDialogFormVisible=true;getValue(scope.row)">编 辑</el-button>
+                        <el-button size="small" type="danger" icon="el-icon-delete"  @click="agreeDelete(scope.row)" >删 除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div class="block" style="margin-top: 10px;">
+                <span class="demonstration"></span>
+                <el-pagination
+                        @current-change="handleCurrentChange"
+                        layout="total, prev, pager, next, jumper"
+                        :current-page="currentPage"
+                        :page-size="pageSize"
+                        :total="tableData.length"
+                        :pager-count="5"
+                        align="center">
+                </el-pagination>
+            </div>
+
+            <el-dialog title="新增部门|学院" :visible.sync="undataDialogFormVisible" :close-on-click-modal="false"
+                       :close-on-press-escape="false" width="520px">
+                <el-form label-width="120px"  label-position="left">
+                    <el-form-item label="部门|学院名称"  >
+                        <el-input type="text" placeholder="请输入部门|学院名称" v-model="updatatname"></el-input>
+                    </el-form-item>
+                    <el-form-item label="科技分认定部门" prop="tname">
+                        <el-switch v-model="updatastatus" active-text="是" inactive-text="否"></el-switch>
+                    </el-form-item>
+                    <el-form-item label="类型(自科|社科)" prop="tname">
+                        <el-select v-model="updatatscience" style="width: 360px;" placeholder="请选择(自科|社科)">
+                            <el-option  key="1" label="自然科学" value="1"></el-option>
+                            <el-option  key="2" label="社会科学" value="2"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <p style="color: #909399;">温馨提示: 部门可以不用设置 类型(自科|社科)</p>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                    <el-button size="small" type="primary" @click="upData()">确 定</el-button>
+                    <el-button size="small" @click="undataDialogFormVisible = false">取 消</el-button>
+                </div>
+            </el-dialog>
+
+            <el-dialog title="删除部门信息" :visible.sync="deleteDialogFormVisible" width="20%" center :close-on-click-modal="false" :close-on-press-escape="false">
+                <span>确认删除该部门吗？</span>
+                <div slot="footer" class="dialog-footer">
+                    <el-button size="small" type="primary" @click="deleteDepartment()">确 定</el-button>
+                    <el-button size="small" @click="deleteDialogFormVisible = false">取 消</el-button>
+                </div>
+            </el-dialog>
+        </div>
+    </template>
+</div>
+<script type="text/javascript">
+    var v = new Vue({
+        el:"#app",
+        data:{
+            currentPage: 1, //当前页码
+            total: '',      //总条数，后面会换成动态的
+            pageSize: 10, 	//每页的总条数
+            tableData:[{
+                tid:'',
+                tname:''
+            }],//表单值
+            // 页面加载效果
+            loading: false,
+            //删除框
+            deleteDialogFormVisible:false,
+            //增加框
+            addDialogFormVisible:false,
+            //修改框
+            undataDialogFormVisible:false,
+            //对话框 宽度
+            formLabelWidth: '240px',
+            //删除所需要的id值
+            rowId:'',
+            //表单数据
+            formData: new FormData(),
+            //新增框中的部门值
+            ruleForm:{tname:'',tscience:''},
+            //修改框中所需要的id值
+            updatatid:'',
+            //修改框中所需要的部门值
+            updatatname:'',
+            updatatscience:'',//自科|社科
+            updatastatus:false,
+        },
+        methods:{
+            //获取行值
+            getValue:function(row){
+                this.updatatid=row.tid;
+                this.updatatname=row.tname;
+                if(row.tscience == 1){
+                    this.updatatscience ="自然科学";
+                }else if(row.tscience == 2){
+                    this.updatatscience ="社会科学";
+                }else{
+                    this.updatatscience = "";
+                }
+
+                if(row.status == 1){
+                    this.updatastatus = true;
+                }else{
+                    this.updatastatus = false;
+                }
+            },
+            //修改学院
+            upData:function(){
+                if (this.updatatname === '') {
+                    this.$message({message: "请输入部门名称", type: 'warning'})
+                }
+                const regCN = /(\p{Unified_Ideograph}|[0-9]|[a-zA-Z])/u;
+                if (!regCN.test(this.updatatname)) {
+                    this.$message({message: "部门名称不能包含特殊字符", type: 'warning'})
+                } else {
+                    let params = new URLSearchParams();
+                    params.append("tid", this.updatatid);
+                    params.append("tname", this.updatatname);
+                    params.append("tscience", this.updatatscience);
+                    if(this.updatastatus){
+                        params.append("status", 1);
+                    }else{
+                        params.append("status", 0);
+                    }
+                    axios.post("../labeldept/updataLabelDept",params).then(response => {
+                        if (response.data.code == 1) {
+                            this.showAll();
+                            const m=this.$message({message: "修改成功",type:'success'})
+                            setTimeout(()=>{m.close()},1000);
+                        } else {
+                            const m=this.$message({message: "修改失败", type: 'warning'})
+                            setTimeout(()=>{m.close()},1000);
+                        }
+                        this.undataDialogFormVisible = false;
+                    })
+                }
+            },
+            //同意删除
+            agreeDelete:function(row){
+                this.deleteDialogFormVisible=true;
+                this.rowId=row.tid;
+            },
+            //删除学院
+            deleteDepartment:function (index,rows) {
+                index=( index+ (this.currentPage-1) * this.pageSize);
+                axios.post("../labeldept/deleteLabelDept?tid="+this.rowId).then(response =>{
+                    this.deleteDialogFormVisible=false;
+                    if (response.data.code == 1 ) {
+                        this.showAll();
+                        const m=this.$message({message:"删除成功",type:'success'})
+                        setTimeout(()=>{m.close()},1000);
+                    } else {
+                        const m=this.$message({message:"删除失败",type:'warning'})
+                        setTimeout(()=>{m.close()},1000);
+                    }
+
+                })
+            },
+            //同意增加框出现
+            agreeAdd:function(){
+                this.addDialogFormVisible=true;
+            },
+            //重置表单
+            resetForm(formName) {
+                this.$refs[formName].resetFields();
+            },
+            //添加部门
+            addDepartment:function(formName){
+                this.$refs[formName].validate((valid)=>{
+                    if (valid){
+                        const regCN = /(\p{Unified_Ideograph}|[0-9]|[a-zA-Z])/u;
+                        if (!regCN.test(this.ruleForm.tname)) {
+                            this.$message({message: "部门名称不能包含特殊字符", type: 'warning'})
+                        } else {
+                            let params = new URLSearchParams();
+                            params.append("tname", this.ruleForm.tname);
+                            params.append("tscience", this.ruleForm.tscience);
+                            if(this.ruleForm.status){
+                                params.append("status", 1);
+                            }else{
+                                params.append("status", 0);
+                            }
+                            axios.post("../labeldept/addLabelDept",params).then(response => {
+                                if (response.data.code == 1) {
+                                    this.showAll();
+                                    this.formData = new FormData();
+                                    this.resetForm(formName);
+                                    const m=this.$message({message: "添加成功", type: 'success'})
+                                    setTimeout(()=>{m.close()},1000);
+                                } else {
+                                    this.formData = new FormData();
+                                    this.resetForm(formName);
+                                    const m=this.$message({message: "添加失败", type: 'warning'})
+                                    setTimeout(()=>{m.close()},1000);
+                                }
+                                this.addDialogFormVisible = false;
+                            })
+                        }}
+                })
+            },
+            // 当前页改变时触发 跳转其他页
+            handleCurrentChange:function(val) {
+                this.currentPage = val;
+            },
+            //显示管理界面
+            showAll:function () {
+                this.$data.loading=true;
+                axios.post("../labeldept/showLabelDept").then(response =>{
+                    if(response.data.code == 1){
+                        this.tableData=response.data.data;
+                    }else{
+                        this.$message({message:response.data.msg, type: 'warning'});
+                    }
+                    this.$data.loading=false;
+                })
+            },
+        },
+        mounted: function () {
+            axios.all([this.showAll()]);
+        },
+    })
+</script>
+
+</body>
+</html>

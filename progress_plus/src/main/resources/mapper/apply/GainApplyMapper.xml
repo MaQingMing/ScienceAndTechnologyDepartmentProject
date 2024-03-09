@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.GainApplyMapper">
+    <select id="selectByPage" resultType="com.yc.apply.entity.GainApply">
+        select *
+        from gain_apply ${ew.customSqlSegment}
+    </select>
+
+    <!-- 添加科技成果申请记录 -->
+    <insert id="addGainApply" useGeneratedKeys="true" keyProperty="gaid" parameterType="com.yc.vo.apply.ApplyVo">
+        insert into gain_apply (sid, status, trtid, childid, team, recordid, `date`, remarks, according, create_by,
+                                create_time, update_by, update_time)
+        values (SUBSTRING_INDEX(#{sid}, ',', 1), 0, #{trtid}, #{childid}, #{team}, #{recordid}, now(), #{remarks}, #{according}, #{createBy},
+                now(),
+                #{updateBy}, now())
+    </insert>
+    <insert id="addbookgainapply" useGeneratedKeys="true" keyProperty="gaid" parameterType="com.yc.vo.apply.BookGainApplyVo">
+        INSERT INTO gain_apply (`sid`, `status`, `rejection`, `trtid`, `childid`, `team`, `recordid`, `date`,
+                                `according`, `batch`, `remarks`, `create_by`, `create_time`, `update_by`, `update_time`)
+        VALUES (#{sid}, '0', NULL, #{trtid}, #{childid}, '0', NULL, now(), #{according},
+                '0', #{remarks}, #{sid}, now(), #{sid}, now());
+    </insert>
+    <insert id="addpapergainapply" useGeneratedKeys="true" keyProperty="gaid" parameterType="com.yc.vo.apply.PaperGainApplyVo">
+        INSERT INTO gain_apply (`sid`, `status`, `rejection`, `trtid`, `childid`, `team`, `recordid`, `date`,
+                                `according`, `batch`, `remarks`, `create_by`, `create_time`, `update_by`, `update_time`)
+        VALUES (#{sid}, '0', NULL, #{trtid}, #{childid}, '0', NULL, now(), #{according},
+                '0', #{remarks}, #{sid}, now(), #{sid}, now());
+    </insert>
+    <!--其中rejection,childid,remarks不一定有-->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="gaid">
+        INSERT INTO gain_apply (sid, `status`, trtid, childid, team, date, remarks, according,batch)
+        VALUES
+        <foreach item="item" index="index" collection="gainApplies"
+                 separator=",">
+            (#{item.sid},
+            1, #{item.trtid}, (
+            SELECT GROUP_CONCAT(ps.psid)
+            FROM paper_standard ps
+            WHERE FIND_IN_SET(
+            ps.leid,
+            (SELECT
+            GROUP_CONCAT( leid )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET( trl.lname, #{item.childid} )))),
+            #{item.team},
+            now(),
+            <choose>
+                <when test="item.remarks != null and item.remarks != '' and item.remarks != 'null'">
+                    #{item.remarks},
+                </when>
+                <otherwise>
+                    '',
+                </otherwise>
+            </choose>
+            #{item.according},1)
+        </foreach>
+    </insert>
+
+    <select id="queryHisPageTotal" resultType="java.lang.Integer">
+        SELECT count(ga.gaid)
+        FROM gain_apply ga
+        INNER JOIN systemuser s ON ga.sid = s.id
+        INNER JOIN tech_results_type tr ON tr.trid = ga.trtid
+        <where>
+            <if test="status = 3">
+                ga.status >= 0
+            </if>
+            <if test="status != 3">
+                ga.status = #{status}
+            </if>
+            <if test="type != ''">
+                AND ga.trtid = (SELECT trid FROM tech_results_type WHERE trname = #{type})
+            </if>
+            <if test="username != ''">
+                AND s.username LIKE concat('%', #{username}, '%')
+            </if>
+            <if test="childid != ''">
+                AND #{childid} like CONCAT('%',ga.childid,'%')
+            </if>
+        </where>
+    </select>
+    
+    <update id="reject">
+        update gain_apply
+        set status      = -1,
+            rejection   = #{rejectContent}
+                ,
+            update_by   = #{updateBy},
+            update_time = now()
+        where find_in_set(gaid, #{gaids})
+    </update>
+
+    <update id="pass">
+        update gain_apply
+        <if test='isDept == "0"'>
+            set status = 1
+        </if>
+        <if test='isDept == "1"'>
+            set status = 2
+        </if>
+        where find_in_set(gaid,#{gaid})
+    </update>
+    
+    <select id="findTechResultsTypeCount" resultType="java.util.Map">
+        select trt.trname,count(*) as count from gain_apply ga left join tech_results_type trt on trt.trid = ga.trtid
+        where ga.status = 2
+        <if test="type == 1">
+            and  ga.trtid in  (1,2)
+        </if>
+        <if test="type == 2">
+            and  ga.trtid &gt; 2
+        </if>
+        GROUP BY trt.trname;
+    </select>
+
+    <select id="findRecentlyYearApplyCount" resultType="java.util.Map">
+        SELECT tr.trname AS trname,
+        SUM(CASE WHEN YEAR(ga.create_time) = YEAR(CURDATE()) THEN 1 ELSE 0 END) AS current_year,
+        SUM(CASE WHEN YEAR(ga.create_time) = YEAR(CURDATE()) - 1 THEN 1 ELSE 0 END) AS last_year,
+        SUM(CASE WHEN YEAR(ga.create_time) = YEAR(CURDATE()) - 2 THEN 1 ELSE 0 END) AS before_last
+        FROM  tech_results_type tr LEFT JOIN gain_apply ga ON tr.trid = ga.trtid
+        AND ga.status = 2  AND YEAR(ga.create_time) BETWEEN YEAR(CURDATE()) - 2 AND YEAR(CURDATE())
+        GROUP BY tr.trname ORDER BY  tr.trid;
+    </select>
+
+    <select id="findApplyCount" resultType="com.yc.apply.entity.GainApply">
+        SELECT count(DISTINCT ga.gaid) as status, '1' trtid
+        FROM direction_apply_info dai,
+        gain_apply ga,
+        record r
+        WHERE dai.gaid = ga.gaid
+        AND ga.trtid = 1
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(ds.posit)
+            FROM direction_standard ds
+            WHERE FIND_IN_SET(ds.dsid, ga.childid)))
+        </if>
+        AND ((ga.recordid = r.id
+        AND r.`status` = 1
+        AND find_in_set(ga.sid, r.team_id)
+        AND (ga.team = 1 OR ga.team = 0))
+        OR ga.recordid IS NULL)
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '2' trtid
+        FROM transverse_apply_info tai,
+        gain_apply ga,
+        record r
+        WHERE tai.gaid = ga.gaid
+        AND ga.trtid = 2
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        AND ((ga.recordid = r.id
+        AND r.`status` = 1
+        AND find_in_set(ga.sid, r.team_id)
+        AND (ga.team = 1 OR ga.team = 0))
+        OR ga.recordid IS NULL)
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(ts.posit)
+            FROM transverse_standard ts
+            WHERE FIND_IN_SET(ts.tsId, ga.childid)))
+        </if>
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '3' trtid
+        FROM achievement_apply_info aai,
+        gain_apply ga,
+        record r
+        WHERE aai.gaid = ga.gaid
+        AND ga.trtid = 3
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        AND ((ga.recordid = r.id
+        AND r.`status` = 1
+        AND find_in_set(ga.sid, r.team_id)
+        AND (ga.team = 1 OR ga.team = 0))
+        OR ga.recordid IS NULL)
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(ass.posit)
+            FROM achievement_standard ass
+            WHERE FIND_IN_SET(ass.asid, ga.childid)))
+        </if>
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '4' trtid
+        FROM paper_apply_info pai,
+        gain_apply ga
+        WHERE pai.gaid = ga.gaid
+        AND ga.trtid = 4
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(ps.posit)
+            FROM paper_standard ps
+            WHERE FIND_IN_SET(ps.psid, ga.childid)))
+        </if>
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '5' trtid
+        FROM book_apply_info bai,
+        gain_apply ga
+        WHERE bai.gaid = ga.gaid
+        AND ga.trtid = 5
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(bs.posit)
+            FROM book_standard bs
+            WHERE FIND_IN_SET(bs.bsid, ga.childid)))
+        </if>
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '6' trtid
+        FROM invent_apply_info iai,
+        gain_apply ga
+        WHERE iai.gaid = ga.gaid
+        AND ga.trtid = 6
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(iss.posit)
+            FROM invent_standard iss
+            WHERE FIND_IN_SET(iss.iid, ga.childid)))
+        </if>
+
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '7' trtid
+        FROM scientific_apply_info sai,
+        gain_apply ga,
+        record r
+        WHERE sai.gaid = ga.gaid
+        AND ga.trtid = 7
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        AND ((ga.recordid = r.id
+        AND r.`status` = 1
+        AND find_in_set(ga.sid, r.team_id)
+        AND (ga.team = 1 OR ga.team = 0))
+        OR ga.recordid IS NULL)
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(ss.posit)
+            FROM scientific_standard ss
+            WHERE FIND_IN_SET(ss.ssid, ga.childid)))
+        </if>
+
+        UNION all
+        SELECT count(DISTINCT ga.gaid) as status, '8' trtid
+        FROM honor_apply_info hai,
+        gain_apply ga
+        WHERE hai.gaid = ga.gaid
+        AND ga.trtid = 8
+        <if test='status != "" and status != null'>
+            AND FIND_IN_SET(ga.status,#{status})
+        </if>
+        <if test='sid != null and sid != ""'>
+            AND ga.sid = #{sid}
+        </if>
+        <if test='tid != null and tid != ""'>
+            AND FIND_IN_SET(
+            #{tid}, (SELECT GROUP_CONCAT(hs.posit)
+            FROM honor_standard hs
+            WHERE FIND_IN_SET(hs.hsid, ga.childid)))
+        </if>
+
+    </select>
+</mapper>

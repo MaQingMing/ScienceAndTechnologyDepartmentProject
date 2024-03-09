@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<style>
+    .applycard{width: 360px;height: 90px;background-color: #fff;border-radius: 10px;margin-left: 25px;margin-top: 25px;box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);display: inline-block;padding: 10px;cursor: pointer;}
+    .applycard:hover{width: 365px; height: 95px;box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.27);margin-left: 20px;margin-top: -10px}
+</style>
+<body>
+<div id="pa-app" v-cloak>
+    <div v-if="isApply" v-for="item in trnames" class="applycard" @click="hanldeProjectApply(item)" >
+        <el-row>
+            <el-col :span="7">
+                <img :src="item.img" width="70">
+            </el-col>
+            <el-col :span="9" style="margin-top: 10px;">
+                <h3 style="color: #37474f;" v-html="item.name"></h3>
+            </el-col>
+        </el-row>
+    </div>
+    <div v-if="!isApply">
+        <h1 style="color: #606266;margin: 3% 2%;">{{title}}</h1>
+    </div>
+
+</div>
+<script type="text/javascript">
+    let paApp = new Vue({
+        el: "#pa-app",
+        data: {
+            isApply:true,//是否能申请
+            title:"",
+            trnames:[{name:"纵向科研申报",url:'project_application/verticalprojectapplication',img:"../images/apply/project_portraitchange.png"},
+                {name:"横向科研申报",url:'project_application/horizontalprojectapplication',img:"../images/apply/project_crosswise.png"},
+                {name:"科技成果奖申报",url:'project_application/achievementawardapplication',img:"../images/apply/achievement_appraise.png"},
+                {name:"学术论文申报",url:'project_application/thesisapplication',img:"../images/apply/achievement_paper.png"},
+                {name:"学术专著申报",url:'project_application/bookapplication',img:"../images/apply/achievement_book.png"},
+                {name:"发明专利申报",url:'project_application/inventapplication',img:"../images/apply/achievement_patent.png"},
+                {name:"科研平台申报",url:'project_application/scientificapplication',img:"../images/apply/project_portraitend.png"},
+                {name:"科技荣誉申报",url:'project_application/honorapplication',img:"../images/apply/achievement_reward.png"}],
+        },
+        methods: {
+            hanldeProjectApply(obj){
+                //打开申请界面
+                window.parent.postMessage({url:obj.url}, "*");
+            },findIfExaminePeriod(){
+                //查询当前时间是否有考核没结束,将不能申请
+                axios.get('../e/fiep').then(res => {
+                    if(res.data.code == 1){
+                        if(typeof (res.data.data) !="undefined"){
+                            if(typeof (res.data.data.eid) !="undefined" && res.data.data.eid>0 ){
+                                this.isApply = false;
+                                this.title = res.data.data.title+" 年度考核中,预计 "+res.data.data.finishDate+" 结束,该段时间不开放科技成果申报..."
+                            }
+                        }
+
+                    }
+                });
+            }
+        }, mounted () {
+            this.findIfExaminePeriod();
+        }
+    })
+</script>
+</body>
+</html>

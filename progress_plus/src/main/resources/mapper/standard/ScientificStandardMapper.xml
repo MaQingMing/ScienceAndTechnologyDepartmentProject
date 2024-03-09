@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.ScientificStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.ScientificStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryTypeId" resultType="java.lang.Integer">
+        select ps.psid from paper_standard ps where
+        <if test="common == '科技成果分数'">
+            ps.score = #{value}
+        </if>
+        <if test="common == '类别/级别'">
+            (select lname from tech_results_level where leid = ps.leid) = #{value}
+        </if>
+        <if test="common == '审核部门'">
+            ps.posit = #{value}
+        </if>
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM scientific_standard ss,
+             tech_results_level trl
+        WHERE ss.leid = trl.leid
+    </select>
+
+    <!-- 添加科研平台项目 -->
+    <insert id="addScientific">
+        insert into scientific_standard (leid, found_score, check_score, cash, remarks, status, posit, trid, create_by,
+                                         create_time,
+                                         update_by, update_time)
+        values (#{leid}, #{foundScore}, #{checkScore}, #{cash}, #{remarks}, #{status}, #{posit}, #{trid}, #{createBy},
+                now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询科研平台 -->
+    <select id="selectScientific" resultType="com.yc.vo.EditProject">
+        select s.ssid id, l.lname, l.leid, s.found_score foundScore, s.check_score checkScore, s.cash, s.remarks,
+        s.posit,
+        s.status, s.trid
+        from scientific_standard s, tech_results_level l
+        where s.leid = l.leid
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and s.leid = #{leid}
+        </if>
+    </select>
+
+    <!-- 修改科研平台项目 -->
+    <update id="updateScientific">
+        update scientific_standard
+        set leid        = #{leid},
+            found_score = #{foundScore},
+            check_score = #{checkScore},
+            cash        = #{cash},
+            remarks     = #{remarks},
+            status      = #{status},
+            posit       = #{posit},
+            trid        = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where ssid = #{id}
+    </update>
+</mapper>

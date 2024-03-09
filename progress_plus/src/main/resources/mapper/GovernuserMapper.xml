@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.mapper.GovernuserMapper">
+     <select id="selectByPage" resultType="com.yc.entity.Governuser">
+        select * from user ${ew.customSqlSegment}
+    </select>
+
+    <select id="find" resultType="com.yc.vo.GovernVo">
+        select s.id,username,nickname,phone,role,s.tid,l.tname deptname,r.name rolename from t_role r
+            RIGHT JOIN governuser s on r.id = CAST(REPLACE(SUBSTRING_INDEX(s.role, ',', 1), '[', '') AS UNSIGNED)
+                LEFT JOIN labeldept l on l.tid = s.tid where s.id != 1 and (username like CONCAT('%', #{username}, '%')
+                        or nickname like CONCAT('%', #{nickname}, '%')) and role=CONCAT('[', #{role}, ']')
+                            order by id desc limit #{start},#{pagesize}
+    </select>
+
+    <select id="findByName" resultType="com.yc.vo.GovernVo">
+        select s.id,username,nickname,phone,role,s.tid,l.tname deptname,r.name rolename from t_role r
+            RIGHT JOIN governuser s on r.id = CAST(REPLACE(SUBSTRING_INDEX(s.role, ',', 1), '[', '') AS UNSIGNED)
+                LEFT JOIN labeldept l on l.tid = s.tid where s.id != 1 and username like CONCAT('%', #{username}, '%')
+                        or nickname like CONCAT('%', #{nickname}, '%')
+                            order by id desc limit #{start},#{pagesize}
+    </select>
+
+    <select id="findAllGovern" resultType="com.yc.vo.GovernVo">
+        select s.id,username,nickname,phone,role,s.tid,l.tname deptname,r.name rolename from t_role r
+            RIGHT JOIN governuser s on r.id = CAST(REPLACE(SUBSTRING_INDEX(s.role, ',', 1), '[', '') AS UNSIGNED)
+                LEFT JOIN labeldept l on l.tid = s.tid where s.id != 1 order by id desc limit #{start},#{pagesize}
+    </select>
+
+    <insert id="addGovern">
+        insert into governuser(username,password,nickname,phone,role,tid,create_by,create_time,update_by,update_time)
+            values(#{username},#{password},#{nickname},#{phone},#{role},#{tid},#{createBy},now(),#{updateBy},now() )
+    </insert>
+
+    <update id="updateInfo">
+        update governuser set nickname = #{nickname}, phone = #{phone}, update_by = #{updateBy}, update_time = NOW() where username = #{username}
+    </update>
+
+    <update id="updateDept">
+        update governuser set tid = #{tid},update_by = #{updateBy}, update_time = NOW() where username = #{username}
+    </update>
+
+    <update id="updateRole">
+        update governuser set role = #{role},update_by = #{updateBy}, update_time = NOW() where username = #{username}
+    </update>
+</mapper>

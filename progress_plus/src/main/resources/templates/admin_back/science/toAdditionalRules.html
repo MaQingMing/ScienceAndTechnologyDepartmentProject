@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<style type="text/css">
+    .el-tab-pane {display: none;}
+</style>
+<body>
+<div id="arApp">
+    <el-row>
+        <el-col :span="5">
+            <el-input v-model="searchInput" size="small" placeholder="请输入附则信息" clearable></el-input>
+        </el-col>
+        <el-col :span="2" style="text-align: center;">
+            <el-button size="small" type="primary" @click="select">搜 索</el-button>
+        </el-col>
+        <el-col :span="3">
+            <el-button size="small" type="primary" @click="dialogVisibleAr =true,dialogVisibleArTitle ='添加科技成果附则'" >新 增</el-button>
+        </el-col>
+    </el-row>
+    <div style="margin-top: -15px;">
+        <el-divider></el-divider>
+    </div>
+    <div style="width: 100%;margin-top: -10px;">
+        <el-table :data="tableData" border style="width: 100%" :height="publicHeight">
+            <el-table-column prop="rid" label="#" width="80">
+            </el-table-column>
+            <el-table-column prop="trname" label="科技成果类型" width="120">
+            </el-table-column>
+            <el-table-column prop="content" label="附则内容" >
+            </el-table-column>
+            <el-table-column prop="lname" label="具体项目项" width="150">
+            </el-table-column>
+            <el-table-column prop="ratio" label="百分比" width="80">
+            </el-table-column>
+            <el-table-column prop="score" label="科技分" width="80">
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="120">
+                <template slot-scope="scope" >
+                    <el-switch
+                            @change="modifyStatus(scope.row)"
+                            v-model="scope.row.status"
+                            :active-value="1"
+                            :inactive-value="0"
+                            :active-text="scope.row.status == 1 ? '启用':'不启用'"
+                            inactive-text="">
+                    </el-switch>
+                </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180">
+                <template slot-scope="scope">
+                    <el-button type="primary" size="mini" @click="update(scope.row)">编 辑</el-button>
+                    <el-button type="danger" size="mini"  @click="hahah(scope.row.rid)">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <div style="background-color: white">
+            <el-pagination
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :current-page="pageNum"
+                    :page-sizes="[5, 10, 20, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total">
+            </el-pagination>
+        </div>
+    </div>
+    <el-dialog :title="dialogVisibleArTitle" :close-on-click-modal="false" :visible.sync="dialogVisibleAr" width="45%" top="5%"
+                @close="updateValue">
+        <div style="width: 100%;">
+            <el-row>
+                <el-col :span="4"><span style="color: red;">*</span>科技成果类型</el-col>
+                <el-col :span="18" style="text-align: center;">
+                    <el-select v-model="selected" size="small" placeholder="请选择科技成果类型" style="width: 90%" @change="changeType">
+                        <el-option v-for="item in trnames" :key="item.trid" :label="item.trname" :value="item.trid">
+                        </el-option>
+                    </el-select>
+                </el-col>
+            </el-row>
+            <div style="width: 100%;margin-top: 20px;margin-bottom: 20px;">
+                <el-tabs v-model="activeName">
+                    <el-tab-pane label="基础分值" name="0">基础分值</el-tab-pane>
+                    <el-tab-pane label="百分比" name="1">百分比</el-tab-pane>
+                    <el-tab-pane label="百分比+具体项目项" name="2">百分比+具体项目项</el-tab-pane>
+                    <el-tab-pane label="其他" name="3">其他</el-tab-pane>
+                </el-tabs>
+
+                <div style="margin-bottom: 50px;" v-if="activeName==0">
+                    <p style="color: #909399;">适用类型:申报国家级自然科学类、哲学社会科学类科研成果奖，计200分</p>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>内 容</el-col>
+                        <el-col :span="18" style="text-align: center;">
+                            <el-input size="small" v-model="additionalData[activeName].context1" placeholder="请输入内容"></el-input>
+                        </el-col>
+                    </el-row>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>分 值</el-col>
+                        <el-col :span="10">
+                            <el-input-number size="small" v-model="additionalData[activeName].score"  @keyup.native="number_change($event)"
+                                             style="width: 140px;" placeholder="请输入分值" controls-position="right" :min="1" :max="200" ></el-input-number>
+                        </el-col>
+                    </el-row>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3">&nbsp;内 容</el-col>
+                        <el-col :span="18" style="text-align: center;">
+                            <el-input  size="small" v-model="additionalData[activeName].context2" placeholder="请输入内容"></el-input>
+                        </el-col>
+                    </el-row>
+                    <p style="margin-top: 10px;font-weight: bold;" >最终效果</p>
+                    <p style="margin-top: 10px;" v-if="additionalData[activeName].score != undefined">
+                        {{additionalData[activeName].context1}}{{additionalData[activeName].score}}{{additionalData[activeName].context2}}
+                    </p>
+                </div>
+                <div style="margin-bottom: 50px;" v-if="activeName==1">
+                    <p style="color: #909399;">适用类型:我校为第一申报单位的项目获社会科学成果奖，按表2中相应等级科技工作量的70%进行计算</p>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>内 容</el-col>
+                        <el-col :span="18" style="text-align: center;">
+                            <el-input size="small" v-model="additionalData[activeName].context1" placeholder="请输入内容"></el-input>
+                        </el-col>
+                    </el-row>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>分 值</el-col>
+                        <el-col :span="10">
+                            <el-input-number size="small" v-model="additionalData[activeName].score"  @keyup.native="number_change($event)"
+                                             style="width: 140px;" placeholder="请输入分值" controls-position="right" :min="1" :max="200" ></el-input-number>
+                            <b style="margin-left: 10px;font-size: 17px;">%</b>
+                        </el-col>
+                    </el-row>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3">&nbsp;内 容</el-col>
+                        <el-col :span="18" style="text-align: center;">
+                            <el-input  size="small" v-model="additionalData[activeName].context2" placeholder="请输入内容"></el-input>
+                        </el-col>
+                    </el-row>
+                    <p style="margin-top: 10px;font-weight: bold;">最终效果</p>
+                    <p style="margin-top: 10px;" v-if="additionalData[activeName].score != undefined">
+                        {{additionalData[activeName].context1}}{{additionalData[activeName].score}}%{{additionalData[activeName].context2}}
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 50px;" v-if="activeName==2">
+                    <p style="color: #909399;">适用类型:新增省级科普基地按表4第9项的20%计算科技工作量</p>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>内 容</el-col>
+                        <el-col :span="18" style="text-align: center;">
+                            <el-input size="small" v-model="additionalData[activeName].context1"  placeholder="请输入内容"></el-input>
+                        </el-col>
+                    </el-row>
+
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>科技项目</el-col>
+                        <el-col :span="18">
+                            <el-select size="small" v-model="additionalData[activeName].childid" placeholder="请选择科技项目" style="width: 100%" clearable>
+                                <el-option v-for="item in lnames" :key="item.leid" :label="item.lname" :value="item.leid">
+                                </el-option>
+                            </el-select>
+                        </el-col>
+                    </el-row>
+
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3"><span style="color: red;">*</span>分 值</el-col>
+                        <el-col :span="10">
+                            <el-input-number size="small" v-model="additionalData[activeName].score"  @keyup.native="number_change($event)"
+                                             style="width: 140px;" placeholder="请输入分值" controls-position="right" :min="1" :max="100"  ></el-input-number>
+                            <b style="margin-left: 10px;font-size: 17px;">%</b>
+                        </el-col>
+                    </el-row>
+                    <el-row style="margin-top: 15px;">
+                        <el-col :span="3">&nbsp;内 容</el-col>
+                        <el-col :span="18" style="text-align: center;">
+                            <el-input  size="small" v-model="additionalData[activeName].context2" placeholder="请输入内容"></el-input>
+                        </el-col>
+                    </el-row>
+                    <p style="margin-top: 10px;font-weight: bold;">最终效果</p>
+                    <p style="margin-top: 10px;" v-if="additionalData[activeName].score != undefined">
+                        {{additionalData[activeName].context1}}{{getLabelValue()}}{{additionalData[activeName].score}}%{{additionalData[activeName].context2}}
+                    </p>
+                </div>
+                <div style="margin-bottom: 50px;" v-if="activeName==3">
+                    <el-row style="margin-top: 10px;">
+                        <el-col>
+                            <p><span style="color: red;">*</span>附则内容</p>
+                        </el-col>
+                    </el-row>
+                    <el-row style="margin-top: 15px;">
+                        <el-col>
+                            <el-input type="textarea" v-model="additionalData[activeName].context1"
+                                      :autosize="{ minRows: 2, maxRows: 4}" placeholder="请输入内容" ></el-input>
+                        </el-col>
+                    </el-row>
+                </div>
+            </div>
+        </div>
+        <span style="margin-left: 70%;">
+            <el-button size="small" type="primary" @click="save">确 定</el-button>
+            <el-button size="small" @click="dialogVisibleAr = false">取 消</el-button>
+        </span>
+    </el-dialog>
+</div>
+<script type="text/javascript" th:src="@{/js/science/additionalRules.js}"></script>
+</body>
+</html>

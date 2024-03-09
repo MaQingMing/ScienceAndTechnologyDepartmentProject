@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.AccountScoreMapper">
+    <insert id="insertBatch">
+        INSERT INTO account_score (sysid, applyid, eid, `status`, type, score, create_by, create_time)
+        values
+        <foreach item="item" index="index" collection="list"
+                 separator=",">
+            (#{item.sysid},#{item.applyid},0,#{item.status},1,#{item.score},
+            #{item.createBy},now())
+        </foreach>
+    </insert>
+    <update id="rejectBatch">
+        delete
+        from account_score
+        where find_in_set(applyid, #{ids}) and type = 1
+    </update>
+    <select id="selectByPage" resultType="com.yc.apply.entity.AccountScore">
+        select *
+        from account_score ${ew.customSqlSegment}
+    </select>
+    <select id="queryAllScores" resultType="com.yc.vo.AllTypeMoney">
+        SELECT sysid,
+               ((
+                    COALESCE(SUM(CASE WHEN STATUS = 1 AND type = 1 THEN score ELSE 0 END), 0)) - (
+                    COALESCE(SUM(CASE WHEN STATUS = 1 AND type = 2 THEN score ELSE 0 END), 0))) cash,
+               ((
+                    COALESCE(SUM(CASE WHEN STATUS = 2 AND type = 1 THEN score ELSE 0 END), 0)) - (
+                    COALESCE(SUM(CASE WHEN STATUS = 2 AND type = 2 THEN score ELSE 0 END), 0))) notcash
+        FROM account_score
+        GROUP BY sysid;
+    </select>
+
+    <select id="findBySid" resultType="com.yc.vo.AccountSystemVo">
+        SELECT (COALESCE(score_balance, 0) + COALESCE(non_score_balance, 0) - COALESCE(loan_score, 0)) as total,
+            COALESCE(score_balance, 0) as exchange,
+            COALESCE(non_score_balance, 0) as ordinary,
+            COALESCE(loan_score, 0) as loan,
+            academy,
+            academy_care,
+            base_score,
+            job
+        FROM systemuser
+        WHERE id = #{sysid}
+    </select>
+
+    <select id="findAccount" resultType="com.yc.vo.AccountScoreVo">
+        SELECT a.asid, a.score, a.type type, a.`status`, DATE_FORMAT(a.create_time, '%Y-%m-%d') AS create_date, trt.trname, trl.lname, ga.trtid,t.`name` pname
+        FROM account_score a
+        INNER JOIN gain_apply ga ON a.applyid = ga.gaid
+        INNER JOIN tech_results_type trt ON ga.trtid = trt.trid
+        INNER JOIN tech_results_level trl ON ga.childid = trl.leid
+        INNER JOIN (
+            SELECT `name`,gaid FROM achievement_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM direction_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM book_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM honor_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM invent_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM paper_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM scientific_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM transverse_apply_info
+        ) t ON t.gaid = ga.gaid
+        WHERE a.type != -1 and a.sysid = #{sysid} AND a.create_time >= DATE_SUB(NOW(), INTERVAL #{month} MONTH)
+
+        union all
+
+        select a.asid, a.score, a.type type, a.`status`, DATE_FORMAT(a.create_time, '%Y-%m-%d') AS create_date,
+        e.title as trname,e.start_date as lname,e.eid as trtid,e.end_date as pname  from systemuser s
+        left join account_score a on a.sysid = s.id  left join examine e on e.eid = a.eid
+        where s.id = #{sysid}  and a.eid>0 AND a.create_time >= DATE_SUB(NOW(), INTERVAL #{month} MONTH)
+
+        ORDER BY create_date desc limit #{start},#{pagesize}
+    </select>
+
+    <select id="findCurrent" resultType="com.yc.vo.AccountScoreVo">
+        SELECT a.asid, a.score, a.type type, a.`status`, DATE_FORMAT(a.create_time, '%Y-%m-%d') AS create_date, trt.trname, trl.lname, t.`name` pname
+        FROM account_score a
+        INNER JOIN gain_apply ga ON a.applyid = ga.gaid
+        INNER JOIN tech_results_type trt ON ga.trtid = trt.trid
+        INNER JOIN tech_results_level trl ON ga.childid = trl.leid
+        INNER JOIN (
+            SELECT `name`,gaid FROM achievement_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM direction_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM book_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM honor_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM invent_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM paper_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM scientific_apply_info
+            UNION ALL
+            SELECT `name`,gaid FROM transverse_apply_info
+        ) t ON t.gaid = ga.gaid
+        WHERE a.type != -1 and sysid = #{sysid} AND DATE_FORMAT(a.create_time, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+
+          union all
+
+        select a.asid, a.score, a.type type, a.`status`, DATE_FORMAT(a.create_time, '%Y-%m-%d') AS create_date,
+        e.title as trname,e.start_date as lname,e.end_date as pname  from systemuser s
+        left join account_score a on a.sysid = s.id  left join examine e on e.eid = a.eid
+        where s.id = #{sysid}  and a.eid>0  AND DATE_FORMAT(a.create_time, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+
+         ORDER BY create_date desc limit #{start},#{pagesize}
+    </select>
+
+    <select id="findJob" resultType="string">
+        SELECT j.context
+        FROM systemuser s
+        JOIN t_job j ON JSON_CONTAINS(s.job, CAST(j.id AS JSON), '$')
+        WHERE s.id = #{sysid}
+    </select>
+
+    <insert id="addAccountScoreList">
+        INSERT INTO account_score( `sysid`, `applyid`, `eid`, `status`, `type`, `score`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+         (#{item.sysid},null,  #{item.eid},  #{item.status},  #{item.type},  #{item.score},
+         #{item.remark}, 1, now(), 1, now())
+        </foreach>
+    </insert>
+
+    <update id="updateBatch">
+        update account_score set type = -1 where find_in_set(applyid,#{gaids})
+    </update>
+</mapper>

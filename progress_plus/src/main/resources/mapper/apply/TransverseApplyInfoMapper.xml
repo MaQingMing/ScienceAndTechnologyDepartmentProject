@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.TransverseApplyInfoMapper">
+    <insert id="insertBatch">
+        insert into transverse_apply_info(gaid, card, name, money, according, leid, first_sign, create_by,
+        create_time, school, subject_category,
+        start_project_year,belong_unit, sign_contract_time, start_time, plan_finish_time, identifier,
+        total_fund,bear_unit, project_status, contract_number, complete_time,
+        subject_type, national_economy_category,type)
+        values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.gaid}, #{item.card}, #{item.name}, #{item.money}, #{item.according}, #{item.leid}, #{item.firstSign}, #{user}, now(),
+             #{item.school}, #{item.subjectCategory}, #{item.startProjectYear}, #{item.belongUnit},
+            #{item.signContractTime},#{item.startTime}, #{item.planFinishTime}, #{item.identifier}, #{item.totalFund}, #{item.bearUnit},#{item.projectStatus},
+            #{item.contractNumber}, #{item.completeTime}, #{item.subjectType}, #{item.nationalEconomyCategory},#{item.type})
+        </foreach>
+    </insert>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid} and sysid = #{sid}
+    </update>
+    <select id="selectByPage" resultType="com.yc.apply.entity.TransverseApplyInfo">
+        select *
+        from transverse_apply_info ${ew.customSqlSegment}
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct ga.gaid)
+        FROM
+        transverse_apply_info tai,
+        gain_apply ga,
+        record r
+        WHERE
+        tai.gaid = ga.gaid
+        AND ga.trtid = 2
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--横向主键，横向名称，经费卡号，进账，我校是否是第一署名，团队成员-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.TransverseHisPage">
+        SELECT
+        distinct tai.taiid,
+        tai.school,
+        ga.team,
+        tai.subject_category,
+        tai.start_project_year,
+        tai.belong_unit,
+        tai.sign_contract_time,
+        tai.start_time,
+        tai.plan_finish_time,
+        tai.identifier,
+        tai.total_fund,
+        tai.bear_unit,
+        tai.project_status,
+        tai.contract_number,
+        tai.complete_time,
+        tai.subject_type,
+        tai.national_economy_category,
+        tai.`name`,
+        tai.first_sign,
+        tai.card,
+        tai.money,
+        tai.gaid,
+        tai.source_unit,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        (select tname from labeldept where tid = (select tid from systemuser where id = ga.sid)) user_dept,
+        (SELECT GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`)) FROM score_apply_info sai
+        WHERE ga.gaid = sai.gaid ) scoreInfo,
+        ( SELECT cash FROM ( SELECT cash, max( score ) FROM transverse_standard ts WHERE
+        FIND_IN_SET( ts.tsId, ga.childid )) s) cash,
+        ga.sid,
+        ga.according,
+        ga.date time,
+        ga.remarks,
+        (select lname from tech_results_level where leid = (select leid from invent_standard where iid = ga.childid))
+        level,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        ( SELECT nickname FROM systemuser WHERE id = ga.sid ) username,
+        CASE
+        WHEN ga.team = 1 THEN
+        '是'
+        WHEN ga.team = 0 THEN
+        '否' ELSE NULL
+        END team,
+        CASE
+        WHEN ga.recordid IS NULL then NULL ELSE (
+        SELECT
+        r.`name`
+        FROM
+        record r
+        WHERE
+        ga.recordid = r.id
+        AND r.`status` = 1
+        AND (( ga.team = 1 and find_in_set(ga.sid,r.team_id))
+        OR ( ga.team = 0 AND ga.sid = r.team_id ))) END rname,
+        ga.recordid
+        FROM
+        transverse_apply_info tai,
+        gain_apply ga,
+        record r
+        WHERE
+        tai.gaid = ga.gaid
+        AND ga.trtid = 2
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != null and status != ""'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='dept!="" and dept != null and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query == "") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( ts.posit )
+            FROM
+            transverse_standard ts
+            WHERE
+            FIND_IN_SET( ts.tsid, ga.childid )))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == ""'>
+            AND FIND_IN_SET(
+            #{college},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            transverse_apply_info tai,
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != "" and identifier == "1" and query == "" and isDept == "0"'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='dept!="" and dept != null and isDept == "0" and identifier == "1" and query == "0"'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (tai.`name` LIKE concat( '%', #{commonLike}, '%' )
+            OR tai.card LIKE concat( '%', #{commonLike}, '%' ))
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( ts.leid )
+            FROM
+            transverse_standard ts
+            WHERE
+            FIND_IN_SET( ts.tsId, ga.childid )))))
+        </if>
+        <if test='identifier == "0"'>
+            AND ((FIND_IN_SET(#{userId},(select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid =
+            ga.gaid)) and ga.team = 1) or (ga.team = 0 and ga.sid = #{userId}))
+        </if>
+    </sql>
+
+    <!-- 添加横向项目申请 -->
+    <insert id="addTransverse">
+        insert into transverse_apply_info (gaid, card, name, money, according, leid, first_sign, create_by,
+                                           create_time, update_by, update_time, school, subject_category,
+                                           start_project_year,
+                                           belong_unit, sign_contract_time, start_time, plan_finish_time, identifier,
+                                           total_fund,
+                                           bear_unit, project_status, contract_number, complete_time,
+                                           subject_type, national_economy_category, type, source_unit)
+        values (#{gaid}, #{card}, #{name}, #{money}, #{according}, #{leid}, #{firstSign}, #{createBy}, now(),
+                #{updateBy}, now(), #{school}, #{subjectCategory}, #{startProjectYear}, #{belongUnit},
+                #{signContractTime},
+                #{startTime}, #{planFinishTime}, #{identifier}, #{totalFund}, #{bearUnit},
+                #{projectStatus},
+                #{contractNumber}, #{completeTime}, #{subjectType}, #{nationalEconomyCategory}, #{type}, #{sourceUnit})
+    </insert>
+</mapper>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.BookStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.BookStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryTypeId" resultType="java.lang.Integer">
+        select bs.bsid from book_standard bs where
+        <if test="common == '科技成果分数'">
+            bs.score = #{value}
+        </if>
+        <if test="common == '类别/级别'">
+            (select lname from tech_results_level where leid = bs.leid) = #{value}
+        </if>
+        <if test="common == '审核部门'">
+            bs.posit = #{value}
+        </if>
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM book_standard bs,
+             tech_results_level trl
+        WHERE bs.leid = trl.leid
+    </select>
+
+    <!-- 添加学术专著项目 -->
+    <insert id="addBook">
+        insert into book_standard (leid, score, max_score cash, remarks, status, posit, trid, create_by, create_time,
+                                   update_by, update_time)
+        values (#{leid}, #{score}, #{maxScore}, #{cash}, #{remarks}, #{status}, #{posit}, #{trid}, #{createBy}, now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询学术专著 -->
+    <select id="selectBook" resultType="com.yc.vo.EditProject">
+        select b.bsid id, l.lname, l.leid, b.score, b.max_score maxScore, b.cash, b.remarks, b.posit, b.status, b.trid
+        from book_standard b,
+        tech_results_level l
+        where b.leid = l.leid
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and b.leid = #{leid}
+        </if>
+    </select>
+
+    <!-- 修改学术专著项目 -->
+    <update id="updateBook">
+        update book_standard
+        set leid        = #{leid},
+            score       = #{score},
+            max_score   = #{maxScore},
+            cash        = #{cash},
+            remarks     = #{remarks},
+            status      = #{status},
+            posit       = #{posit},
+            trid        = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where bsid = #{id}
+    </update>
+</mapper>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.TransverseStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.TransverseStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryTypeId" resultType="java.lang.Integer">
+        select ts.tsid from transverse_standard ts where
+        <if test="common == '科技成果分数'">
+            ts.score = #{value}
+        </if>
+        <if test="common == '类别/级别'">
+            ts.type =
+        </if>
+        <if test="common == '审核部门'">
+            ps.posit = #{value}
+        </if>
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM transverse_standard ts,
+             tech_results_level trl
+        WHERE ts.leid = trl.leid
+    </select>
+
+    <!-- 添加横向项目 -->
+    <insert id="addTransverse">
+        insert into transverse_standard (leid, `type`, score, cash, context, remarks, status, posit, trid, create_by,
+                                         create_time,
+                                         update_by, update_time)
+        values (#{leid}, #{type}, #{score}, #{cash}, #{remarks}, #{context}, #{status}, #{posit}, #{trid}, #{createBy},
+                now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询横向项目 -->
+    <select id="selectTransverse" resultType="com.yc.vo.EditProject">
+        select t.tsid id, l.lname, l.leid, t.type, t.context, t.score, t.cash, t.remarks, t.posit, t.status, t.trid
+        from transverse_standard t, tech_results_level l
+        where t.leid = l.leid
+        <if test="context != null and context != 'null' and context != ''">
+            and t.context like concat('%', #{context}, '%')
+        </if>
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and t.leid = #{leid}
+        </if>
+    </select>
+
+    <!-- 修改横向项目 -->
+    <update id="updateTransverse">
+        update transverse_standard
+        set leid    = #{leid},
+            `type`  = #{type},
+            score   = #{score},
+            cash    = #{cash},
+            context = #{context},
+            remarks = #{remarks},
+            status  = #{status},
+            posit   = #{posit},
+            trid    = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where tsid = #{id}
+    </update>
+
+    <!-- 查询横向项目级别对应的分数 -->
+    <select id="selectLevel" resultType="com.yc.vo.EditProject">
+        select t.tsid id, l.lname, l.leid, t.type, t.score, l.trid, t.cash
+        from transverse_standard t,
+             tech_results_level l
+        where t.leid = l.leid 
+          and l.status = 1 
+          and t.status = 1
+    </select>
+
+    <!-- 查询类型对应的分数 -->
+    <select id="selectScore" resultType="com.yc.vo.EditProject">
+        select l.lname, t.score, t.cash
+        from transverse_standard t,
+             tech_results_level l
+        where t.leid = l.leid
+          and type = #{type}
+          and t.status = 1
+          and l.status = 1
+        order by t.score asc
+    </select>
+
+</mapper>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<body>
+<div id="db-app">
+    <el-button size="small" type="primary" @click="handleNewBackup" >新建数据库备份</el-button>
+    <el-button size="small" icon="el-icon-refresh" @click="handleMysqlBackupList" ></el-button>
+    <p style="margin-top: 5px;color: #606266;"> 温馨提示: 备份文件每7天自动备份一次,备份文件最长只保留28天内 </p>
+    <div style="margin-top: -15px;">
+        <el-divider></el-divider>
+    </div>
+    <el-table :data="tableData" border style="width: 100%">
+        <el-table-column type="index" width="80" label="#" align="center"></el-table-column>
+        <el-table-column prop="fileType" label="备份日期" ></el-table-column>
+        <el-table-column prop="fileName" label="文件名称"></el-table-column>
+        <el-table-column prop="fileSize" label="文件大小"></el-table-column>
+        <el-table-column prop="address" label="操作" width="150">
+            <template slot-scope="scope">
+                <el-link :href="scope.row.path" type="primary">下载备份文件</el-link>
+            </template>
+        </el-table-column>
+    </el-table>
+</div>
+<script type="text/javascript">
+    var DbApp = new Vue({
+        el:"#db-app",
+        data:{
+            tableData:[],//数据
+        },
+        methods:{
+            handleNewBackup(){
+                //新建数据库备份
+                this.$confirm('此操作将新建备份文件, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    this.$message({message: '新建中,预计1-5分钟,请勿重复点击!', type: 'warning'});
+                    axios.get("../mb/nb").then(response => {
+                        if (response.data.code == 1) {
+                            this.handleMysqlBackupList();
+                            this.$message({message: '新建备份成功!', type: 'success'});
+                        } else {
+                            this.$message.error('新建备份失败,请稍后再试!');
+                        }
+                    });
+                }).catch(() => {
+                    this.$message({type: 'info', message: '已取消!'});
+                });
+            },handleMysqlBackupList(){
+                //查询备份列表
+                this.tableData = [];
+                axios.get("../mb/nblist").then(res => {
+                    if (res.data.code == 1) {
+                        this.$message({message: '查询成功!', type: 'success'});
+                        this.tableData = res.data.data;
+                    } else {
+                        this.$message({message: '暂无数据库备份,您可以新建备份', type: 'warning'});
+                    }
+                });
+            }
+        },
+        mounted: function () {
+            this.handleMysqlBackupList();
+        }
+    })
+</script>
+</body>
+</html>

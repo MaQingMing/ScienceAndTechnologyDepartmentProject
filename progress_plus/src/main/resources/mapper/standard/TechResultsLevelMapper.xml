@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.TechResultsLevelMapper">
+    <!--<resultMap id="levelResult" type="java.util.HashMap">
+        <association property="">
+            <result property="leid" column="id" javaType="java.lang.Long" jdbcType="BIGINT"/>
+            <result property="lname" column="lname" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        </association>
+    </resultMap>-->
+    <select id="queryLevels" resultType="com.yc.vo.ChildLevel">
+        SELECT dsid                                                                     id,
+               (SELECT lname FROM tech_results_level WHERE trid = 1 AND ds.leid = leid) lname,
+               context                                                                  addition,
+               trid
+        FROM direction_standard ds
+        UNION
+        SELECT tsId                                                                     id,
+               (SELECT lname FROM tech_results_level WHERE trid = 2 AND ts.leid = leid) lname,
+               type                                                                     addition,
+               trid
+        FROM transverse_standard ts
+        UNION
+        SELECT asid                                                                      id,
+               (SELECT lname FROM tech_results_level WHERE trid = 3 AND ass.leid = leid) lname,
+               context                                                                   addition,
+               trid
+        FROM achievement_standard ass
+        UNION
+        SELECT psid                                                                     id,
+               (SELECT lname FROM tech_results_level WHERE trid = 4 AND ps.leid = leid) lname,
+               remarks                                                                  addition,
+               trid
+        FROM paper_standard ps
+        UNION
+        SELECT bsid                                                                     id,
+               (SELECT lname FROM tech_results_level WHERE trid = 5 AND bs.leid = leid) lname,
+               score                                                                    addition,
+               trid
+        FROM book_standard bs
+        UNION
+        SELECT iid                                                                       id,
+               (SELECT lname FROM tech_results_level WHERE trid = 6 AND iss.leid = leid) lname,
+               stage                                                                     addition,
+               trid
+        FROM invent_standard iss
+        UNION
+        SELECT ssid                                                                     id,
+               (SELECT lname FROM tech_results_level WHERE trid = 7 AND ss.leid = leid) lname,
+               found_score                                                              addition,
+               trid
+        FROM scientific_standard ss
+        UNION
+        SELECT hsid                                                                     id,
+               (SELECT lname FROM tech_results_level WHERE trid = 8 AND hs.leid = leid) lname,
+               score                                                                    addition,
+               trid
+        FROM honor_standard hs
+    </select>
+
+    <select id="selectByPage" resultType="com.yc.standard.entity.TechResultsLevel">
+        select *
+        from tech_results_level ${ew.customSqlSegment}
+    </select>
+
+    <select id="queryAllType" resultType="java.lang.String">
+        <if test='status == "0"'>
+            select concat(trname,',',trid) from tech_results_type
+        </if>
+        <if test='status == "1"'>
+            SELECT '纵向科研,1' type FROM direction_standard WHERE FIND_IN_SET( #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM direction_standard))
+            UNION
+            SELECT '横向科研,2' type FROM transverse_standard  WHERE FIND_IN_SET( #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM transverse_standard))
+            UNION
+            SELECT '科技成果,3' type   FROM achievement_standard WHERE FIND_IN_SET(  #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM achievement_standard))
+            UNION
+            SELECT '学术论文,4' type   FROM paper_standard  WHERE FIND_IN_SET( #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM paper_standard))
+            UNION
+            SELECT '学术专著,5' type  FROM book_standard   WHERE FIND_IN_SET(  #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM book_standard))
+            UNION
+            SELECT '发明专利,6' type   FROM invent_standard  WHERE FIND_IN_SET( #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)   FROM invent_standard))
+            UNION
+            SELECT '科研平台,7' type   FROM scientific_standard  WHERE FIND_IN_SET(  #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM scientific_standard))
+            UNION
+            SELECT '科技荣誉,8' type FROM honor_standard WHERE FIND_IN_SET(   #{tid}, (SELECT GROUP_CONCAT(DISTINCT posit)  FROM honor_standard))
+        </if>
+
+    </select>
+
+    <!-- 修改项目级别状态 -->
+    <update id="modifyStatus">
+        update ${tableName} set status = #{status} where leid = #{leid}
+    </update>
+
+    <!-- 修改项目状态 -->
+    <update id="modifyProjectStatus">
+        update ${tableName} set status = #{status}  where ${idName} = #{id}
+    </update>
+
+    <!-- 修改项目级别是否可以换现 -->
+    <update id="modifyCash">
+        update ${tableName} set cash = #{cash} where ${idName} = #{id}
+    </update>
+
+    <!-- 修改项目级别 -->
+    <update id="modifyTechResultsLevel">
+        update tech_results_level
+        set lname       = #{lname},
+            remarks     = #{remarks},
+            status      = #{status},
+            update_by   = #{updateBy},
+            update_time = now()
+        where leid = #{leid}
+    </update>
+
+    <!-- 查询项目级别 -->
+    <select id="selectTechResultsLevelByPage" resultType="com.yc.vo.TechResultsLevelAndTrname">
+        select trl.leid, trl.lname, trl.trid, trt.trname, trl.remarks, trl.status from tech_results_level trl,
+        tech_results_type trt
+        where trl.trid = trt.trid
+        <if test="trid != null and trid != 'null' and trid != ''">
+            and trl.trid = #{trid}
+        </if>
+        <if test="lname != null and lname != 'null' and lname != ''">
+            and lname like CONCAT('%', #{lname}, '%')
+        </if>
+        group by trl.lname
+    </select>
+
+    <!-- 添加项目级别 -->
+    <insert id="addTechResultsLevel">
+        insert into tech_results_level (lname, trid, remarks, status, create_by, create_time, update_by, update_time)
+        values (#{lname}, #{trid}, #{remarks}, #{status}, #{createBy}, now(), #{updateBy}, now())
+    </insert>
+
+    <!-- 根据类型id查询项目级别 -->
+    <select id="selectLevelByTrid" resultType="com.yc.standard.entity.TechResultsLevel">
+        select leid, lname  from tech_results_level  where trid = #{trid}  and status = 1
+    </select>
+
+    <!-- 查询类型对应的分数 -->
+    <select id="selectScore" resultType="com.yc.vo.EditProject">
+        select l.lname, t.score, t.cash
+        from transverse_standard t,
+             tech_results_level l
+        where t.leid = l.leid
+          and t.status = 1
+          and l.status = 1
+          and type = #{type}
+        order by t.score asc
+    </select>
+</mapper>

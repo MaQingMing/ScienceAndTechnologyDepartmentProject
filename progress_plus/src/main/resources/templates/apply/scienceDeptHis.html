@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/apply_science_header :: head"></head>
+<link rel="stylesheet" type="text/css" th:href="@{/css/apply/science.css}">
+<body>
+<div id="app">
+    <template>
+        <!-- 备案  查看附件 顶部标签页  -->
+        <div class="bottomcard" style="margin-bottom: 5px;"
+             th:insert="~{common/science/recordAndfile_common :: copyrecordAndfile}"></div>
+        <!--搜索输入框-->
+        <div class="topss">
+            <!--共同的筛选条件-->
+            <!--不同类别多字段模糊查询-->
+            <el-input size="small" v-model="params.commonLike" :placeholder="phContent" @change="chooseChange"
+                      class="topinput1"></el-input>
+            <!--相对应的科技等级-->
+            <el-select size="small" style="width: 35%;" v-model="params.level" placeholder="请选择科技等级"
+                       @change="chooseChange">
+                <el-option :label="s" :index="index" :value="s" v-for="(s,index) in levels"></el-option>
+            </el-select>
+            <!--审核状态-->
+            <el-select size="small" style="width: 15%;" v-model="params.status" placeholder="请选择审核状态"
+                       @change="chooseChange"><!---->
+                <el-option label="审核中" value="0,1" v-if="user.identity == 0"></el-option>
+                <el-option label="通过" value="2"></el-option>
+                <el-option label="驳回" value="-1"></el-option>
+            </el-select>
+            <el-button size="small" style="" type="primary" @click="search">查询</el-button>
+            <el-button size="small" style="" type="primary" @click="exportDialog = true">导出</el-button>
+        </div>
+        <el-dialog title="驳回窗口" top="3%" :visible.sync="rejection">
+            <el-form>
+                <el-form-item style="display: flex;">
+                    驳回理由:
+                    <el-input type="textarea" v-model="rejectContent"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="commitReject">提交</el-button>
+                </el-form-item>
+            </el-form>
+        </el-dialog>
+
+        <el-dialog title="导出申请历史文件" :visible.sync="exportDialog" width="30%" :before-close="handleClose">
+            <div style="display: flex">
+                <el-select v-model="selectedYears" multiple placeholder="请选择导出年份">
+                    <el-option v-for="item in years" :key="item.value" :label="item" :value="item">
+                    </el-option>
+                </el-select>
+                <el-select v-model="selectedType" multiple placeholder="请选择导出类别">
+                    <el-option label="全部" value="0">
+                    </el-option>
+                    <el-option v-for="item in scienceType" :key="item.value" :label="item.split(',')[0]"
+                               :value="item.split(',')[1]">
+                    </el-option>
+                </el-select>
+            </div>
+
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="exportDialog = false">取 消</el-button>
+                <el-button type="primary" @click="exportHis">导 出</el-button>
+            </span>
+        </el-dialog>
+
+        <div class="centertable" style="margin-top: 5px;float: left">
+            <el-table ref="multipleTable" v-loading="loading" :data="tableData.list" tooltip-effect="dark"
+                      :height="publicHeight" style="width: 100%;margin-top: 12px;">
+                <el-table-column label="申请信息" align="center">
+                    <template slot-scope="scope">
+                        <div v-if="selectType == '纵向科研'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/direction_common :: copydirection}"></div>
+                        </div>
+
+                        <div v-if="selectType == '横向科研'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/transverse_common :: copytransverse}"></div>
+                        </div>
+
+                        <div v-if="selectType == '科技成果'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/achievement_common :: copyachievement}"></div>
+                        </div>
+
+                        <div v-if="selectType == '学术论文'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/paper_common :: copypaper}"></div>
+                        </div>
+
+                        <div v-if="selectType == '学术专著'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/book_common :: copybook}"></div>
+                        </div>
+
+                        <div v-if="selectType == '发明专利'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/invent_common :: copyinvent}"></div>
+                        </div>
+
+                        <div v-if="selectType == '科研平台'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/scientific_common :: copyscientific}"></div>
+                        </div>
+
+                        <div v-if="selectType == '科技荣誉'" class="applyhistorycard">
+                            <div class="bottomcard" style="margin-bottom: 5px;"
+                                 th:insert="~{common/science/honor_common :: copyhonor}"></div>
+                        </div>
+
+                    </template>
+                </el-table-column>
+
+                <el-table-column fixed="right" label="操作" width="120px" align="center" :reserve-selection="true">
+                    <template slot-scope="scope">
+                        <div style="margin-top: 10px">
+                            <el-button size="small" type="danger" @click="reject(scope.row)"
+                                       v-if="scope.row.status != -1">驳回
+                            </el-button>
+                        </div>
+                        <div style="margin-top: 10px">
+                            <el-button size="small" type="success" plain>查看附件</el-button>
+                        </div>
+                        <div style="margin-top: 10px">
+                            <el-button size="small" type="warning" @click="detail(scope.row.recordid)"
+                                       v-if="scope.row.recordid != '' && scope.row.recordid != null"
+                                       plain>查看备案
+                            </el-button>
+                        </div>
+
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div class="block">
+                <span class="demonstration"></span>
+                <el-pagination @current-change="handleCurrentChange" @size-change="handleSizeChange"
+                               :current-page="currentPage" :page-sizes="[5,10,20,50,100]" :total="total"
+                               :pager-count="5" layout="total,sizes, prev, pager, next" align="center">
+                </el-pagination>
+            </div>
+        </div>
+    </template>
+</div>
+
+
+<script type="text/javascript">
+    var v = new Vue({
+        el: "#app",
+        data: {
+            isBadge:false,//是否显示小红点
+            publicHeight: document.documentElement.clientHeight - 180,
+            currentPage: 1, //当前页码
+            total: '',      //总条数，后面会换成动态的
+            pageSize: 10, 	//每页的总条数
+            tableData: [],//表单值
+            // 页面加载效果
+            loading: false,
+            //当前登录的用户
+            user: {},
+            //科技成果分类
+            scienceType: [],
+            //选择的科技成果类别
+            selectType: '',
+            //是否显示出细节窗口
+            detailVis: false,
+            //当前所处的tagname
+            activeName: '',
+            //当前需要查询的url前缀
+            url: '',
+            //查询的参数
+            params: {},
+            statusinput: '',
+            //科技成果申请细节数据
+            detailData: {},
+            //每个大类中的等级筛选条件
+            typeLevel: {},
+            //对应的等级筛选条件
+            levels: [],
+            //是否是部门的人
+            isDept: false,
+            //学院筛选条件
+            colleges: [],
+            //输入框中的内容
+            phContent: '',
+            exportDialog: false,
+            //所有年份
+            years: [],
+            //选择导出的年份
+            selectedYears: [],
+            //选择导出类型
+            selectedType: [],
+            rejection: false,
+            rejectContent: "",
+            visible: false,
+            batchNums: 0,
+            recorddata: [{
+                name: '',
+                create_time: '',
+                status: '0',
+                consume: '',
+                description: ''
+            }],
+            filedialog: false,
+            file_list: [],
+            dialogdirectionVisible: false,
+            currentObject: {
+                school: "",
+                type: "",
+                subjectCategory: "",
+                startProjectYear: "",
+                belongUnit: "",
+                name: "",
+                signContractTime: "",
+                startTime: "",
+                planFinishTime: "",
+                projectIdentifier: "",
+                totalFund: "",
+                receiptTotalFund: "",
+                cooperationForm: "",
+                bearUnit: "",
+                projectStatus: "",
+                contractNumber: "",
+                completeTime: "",
+                projectMembers: "",
+                subjectType: "",
+                nationalEconomyCategory: "",
+            },
+            dialogTransverseVisible: false
+        },
+        filters: {
+            subString(value,name,valLength) {
+                if(typeof (valLength) !="undefined" && valLength>0){
+                    return value.substr(0, valLength - 5) + "...";
+                }
+                //获取父 div 宽度
+                let divWidth = 90;
+                if(typeof (name) != "undefined"){
+                    divWidth = ($("."+name+" .cardtextstyle").width() - 60);
+                    if(typeof (divWidth) =="undefined" || Number.isNaN(divWidth)){
+                        divWidth = 90;
+                    }
+                }
+                return substringAndLength(value,divWidth);
+            }
+        },
+        methods: {
+            exportHis() {
+                // 创建一个a标签
+                var link = document.createElement('a');
+                // 设置href属性
+                link.href = "../gainApply/exportHis?years=" + this.selectedYears.join(",") + "&types=" + this.selectedType.join(","); // 请将这里的链接替换为你想要的链接
+                // 复制href属性
+                var copiedHref = link.href;
+                // 模拟点击事件
+                link.setAttribute('target', '_blank'); // 可选：在新标签页打开链接
+                link.click();
+            },
+            selectYear() {
+                axios.get("../gainApply/queryYears").then(res => {
+                    if (res.data.code == 1) {
+                        this.years = res.data.data.filter(function (value) {
+                            return value !== null;
+                        });
+                        console.log(this.years)
+                    }
+                })
+            },
+            handleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        done();
+                    })
+                    .catch(_ => {
+                    });
+            },
+            //显示管理界面
+            showAll() {
+                this.$data.loading = true;
+                this.getAllSelectInfo()
+                this.selectYear()
+            },
+            //得到所有的下拉框信息
+            getAllSelectInfo() {
+                axios.get("../techResultsType/queryAllTypes?tid=" + this.user.user.tid
+                    + "&status=" + this.user.status).then(res => {
+                    if (res.data.code == 1) {
+                        this.scienceType = res.data.data
+                        this.activeName = this.scienceType[0].split(",")[0]
+                        this.selectType = this.scienceType[0].split(",")[0]
+                        this.chooseUrl()
+                    } else {
+                        this.$message({message: res.data.msg, type: "error"});
+                    }
+                })
+            },
+            //选择需要查询的url前缀
+            chooseUrl() {
+                //查询的条件根据登录进来的用户区分，如果只是学院的老师，就只能查看本学院师生申请记录，但凡有一个都需要查询到
+                //查询条件就是八大类，根据不同类别进行的多字段模糊查询，具体类别的等级，申请状态。其中申请状态只有通过和不通过两种
+                //所有查询的大前提是其中的详情信息都能够查询出来，这就包括详情需要有，备案信息需要通过
+                //如果登录进来的是科技处的以上的条件还需要加一个，就是不同学院的筛选
+                this.params = {
+                    //科技等级
+                    level: '',
+                    //共同字段模糊查询
+                    commonLike: '',
+                    //审核状态，默认是通过
+                    status: '',
+                    //登录进来的用户所属的部门
+                    dept: this.user.user.tid,
+                    //登录进来的用户id
+                    userId: this.user.user.id,
+                    //登录进来的用户的身份，是领导还是申请者
+                    identifier: '1',
+                    //领导是部门的还是学院的
+                    isDept: this.user.status,
+                    //登录进来领导所属部门的名称
+                    deptName: this.user.tname
+                }
+
+                switch (this.selectType) {
+                    case "学术论文":
+                        this.url = '../paperApplyInfo/'
+                        //输入框中的模糊查询内容提醒
+                        this.phContent = '请输入论文名称/发表刊物名/研究院'
+                        if ('paperLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.paperLevels
+                            this.typeLevel.paperLevels = this.levels
+                        } else {
+                            axios.get("../paperStandard/queryLevels").then(res => {
+                                if (res.data.code == 1) {
+                                    this.paperApplyInfo = res.data.data
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "学术专著":
+                        this.url = '../bookApplyInfo/'
+                        this.phContent = '请输入著作名称/出版单位/著作类型'
+                        if ('bookLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.bookLevels
+                        } else {
+                            axios.get("../bookStandard/queryLevels").then(res => {
+                                if (res.data.code == 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.bookLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "发明专利":
+                        this.url = '../inventApplyInfo/'
+                        this.phContent = '请输入专利名称/专利类型'
+                        if ('inventLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.inventLevels
+                        } else {
+                            axios.get("../inventStandard/queryLevels").then(res => {
+                                if (res.data.code == 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.inventLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "纵向科研":
+                        this.url = '../directionApplyInfo/'
+                        this.phContent = '请输入项目性质/项目级别/批准立项部门'
+                        if ('directionLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.directionLevels
+                        } else {
+                            axios.get("../directionStandard/queryLevels").then(res => {
+                                if (res.data.code == 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.directionLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "横向科研":
+                        this.url = '../transverseApplyInfo/'
+                        this.phContent = '请输入科研项目名称/项目级别'
+                        if ('transverseLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.transverseLevels
+                        } else {
+                            axios.get("../transverseStandard/queryLevels").then(res => {
+                                if (res.data.code == 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.transverseLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "科技成果":
+                        this.url = '../achievementApplyInfo/'
+                        this.phContent = '请输入批准单位/获奖项目名称/获奖等级'
+                        if ('achievementLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.achievementLevels
+                        } else {
+                            axios.get("../achievementStandard/queryLevels").then(res => {
+                                if (res.data.code === 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.achievementLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "科研平台":
+                        this.url = '../scientificApplyInfo/'
+                        this.phContent = '请输入项目名称/项目类别/批准单位'
+                        if ('scientificLevels' in this.typeLevel) {
+                            this.levels = this.typeLevel.scientificLevels
+                        } else {
+                            axios.get("../scientificStandard/queryLevels").then(res => {
+                                if (res.data.code === 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.scientificLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                    case "科技荣誉":
+                        this.url = '../honorApplyInfo/'
+                        this.phContent = '请输入批准单位/荣誉类别'
+                        if ('honorApplyInfo' in this.typeLevel) {
+                            this.levels = this.typeLevel.honorLevels
+                        } else {
+                            axios.get("../honorStandard/queryLevels").then(res => {
+                                if (res.data.code == 1) {
+                                    this.levels = res.data.data
+                                    this.typeLevel.honorLevels = this.levels
+                                } else {
+                                    this.$message({message: res.data.msg, type: "error"});
+                                }
+                            })
+                        }
+                        this.search()
+                        break;
+                }
+            },
+            // 当前页改变时触发 跳转其他页
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.search()
+            },
+            search() {
+                this.params.begin = this.currentPage
+                this.params.size = this.pageSize
+                if (this.params.status === '') {
+                    this.params.status = '2'
+                }
+                //目前的筛选条件有  组员姓名 科技分范围 各个类别的各自条件
+                $.ajax({
+                    url: this.url + "queryHisPage",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(this.params)
+                }).then(res => {
+                    if (res.code == 1) {
+                        var data = res.data
+                        if (data.list === [] || data.list === [null]) {
+                            this.tableData.list = []
+                        } else {
+                            this.tableData.list = data.list
+                        }
+                        //对其中的数据进行加工
+                        this.tableData.list.forEach(item => {
+                            for (let key in item) {
+                                if ('scoreInfo' === key) {
+                                    const scoreInfo = item[key]
+                                    if (scoreInfo === null) {
+                                        item.allScore = 0
+                                        item[key] = [{
+                                            nickname: '无',
+                                            can_score: 0,
+                                            cannot_score: 0,
+                                            host: 0
+                                        }]
+                                        break
+                                    }
+                                    item[key] = []
+                                    let allScore = 0
+                                    scoreInfo.split(',').forEach(s => {
+                                        var info = s.split("::");
+                                        item[key].push({
+                                            nickname: info[0],
+                                            can_score: info[1],
+                                            cannot_score: info[2],
+                                            host: info[3]
+                                        })
+                                        allScore += Number.parseFloat(info[1])
+                                        allScore += Number.parseFloat(info[2])
+                                    })
+                                    item.allScore = allScore
+                                }
+                            }
+                            if (item.allScore == undefined) {
+                                item.allScore = 0
+                            }
+                        })
+                        this.total = data.count
+                        this.$data.loading = false;
+                        this.$forceUpdate()
+                    } else {
+                        this.$message({message: res.data.msg, type: "error"});
+                    }
+                })
+            },
+            detail(row) {
+                axios.get("../record/queryDetail?id=" + row).then(res => {
+                    if (res.data.code == 1) {
+                        this.detailVis = true
+                        this.detailData = res.data.data
+                    } else {
+                        this.$message({message: res.data.msg, type: "error"});
+                    }
+                })
+            },
+            handleClick(tab, event) {
+                this.selectType = tab.label
+                this.chooseUrl()
+            },
+            //选择条件发生变化的时候将页数重置为0
+            chooseChange() {
+                this.currentPage = 1
+            },
+            handleSizeChange(val) {
+                this.pageSize = val
+                this.currentPage = 1
+                this.search()
+            },
+            reject(v) {
+                this.multipleSelection = v.gaid + "::" + v.sid + ";"
+                this.rejection = true
+            },
+            commitReject() {
+                var params = new URLSearchParams();
+                //查看是批量驳回还是单个驳回
+                params.set("ids", this.multipleSelection)
+                params.set("rejectContent", this.rejectContent)
+                params.set("fuser", this.user.user.id)
+                params.set("isDept", this.user.status)
+                axios.post("../gainApply/reject", params).then(res => {
+                    if (res.data.code == 1) {
+                        this.search()
+                        this.$message({message: '驳回成功', type: "success"});
+                        this.rejection = false
+                    } else {
+                        this.$message({message: res.data.msg, type: "error"});
+                    }
+                })
+                this.visible = false
+            },
+        }, created() {
+            var user = JSON.parse(sessionStorage.user);
+            this.user = user
+            if (this.user.identity == "1" && this.user.status == "1") {
+                this.isDept = true
+            }
+            axios.all([this.showAll()]);
+        }
+    })
+</script>
+</body>
+</html>

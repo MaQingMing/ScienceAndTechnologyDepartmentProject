@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.HonorStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.HonorStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryTypeId" resultType="java.lang.Integer">
+        select ps.psid from paper_standard ps where
+        <if test="common == '科技成果分数'">
+            ps.score = #{value}
+        </if>
+        <if test="common == '类别/级别'">
+            (select lname from tech_results_level where leid = ps.leid) = #{value}
+        </if>
+        <if test="common == '审核部门'">
+            ps.posit = #{value}
+        </if>
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM honor_standard hs,
+             tech_results_level trl
+        WHERE hs.leid = trl.leid
+    </select>
+
+    <!-- 添加科技荣誉项目 -->
+    <insert id="addHonor">
+        insert into honor_standard (leid, score, cash, remarks, status, posit, trid, create_by, create_time,
+                                    update_by, update_time)
+        values (#{leid}, #{score}, #{cash}, #{remarks}, #{status}, #{posit}, #{trid}, #{createBy}, now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询科技荣誉 -->
+    <select id="selectHonor" resultType="com.yc.vo.EditProject">
+        select h.hsid id, l.lname, l.leid, h.score, h.cash, h.remarks, h.posit, h.status, h.trid from honor_standard h,
+        tech_results_level l
+        where h.leid = l.leid
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and h.leid = #{leid}
+        </if>
+    </select>
+    <select id="selectLevel" resultType="com.yc.vo.EditProject">
+        select h.hsid id,h.cash, l.lname, l.leid, h.score, l.trid
+        from honor_standard h,
+             tech_results_level l
+        where h.leid = l.leid
+    </select>
+
+    <!-- 修改科技荣誉项目 -->
+    <update id="updateHonor">
+        update honor_standard
+        set leid        = #{leid},
+            score       = #{score},
+            cash        = #{cash},
+            remarks     = #{remarks},
+            status      = #{status},
+            posit       = #{posit},
+            trid        = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where hsid = #{id}
+    </update>
+</mapper>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/apply_header :: head"></head>
+<body>
+<!-- 主页面 -->
+<div id="app">
+    <!-- 申请内容填写 -->
+    <div class="Contentfilling">
+        <div style="width: 99%;margin-top: 5px;">
+            <div th:insert="~{common/apply/apply_tabs :: copytabs}"></div>
+        </div>
+        <div style="width: 99%;margin-top: 0px" v-for="(item, index) in editableTabs">
+            <el-collapse v-model="item.activeName" accordion v-if="editableTabsValue == item.name">
+                <el-collapse-item name="1">
+                    <template slot="title">
+                        <div class="cf-title" style="width: 99%">
+                            <el-tooltip class="item" effect="dark" content="*为必填项" placement="top">
+                                <p style="">基本信息/材料上传</p>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                    <div style="margin-top: 0px;width: 94%;margin-left: 5%;height: 410px">
+                        <div class="infostyle">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>论文名称:</p>
+                            </div>
+                            <div class="inputstyle" style="width: 980px;">
+                                <el-input id="input-xmname" v-model="item.xmname" placeholder="请输入论文名称"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>刊物名:</p>
+                            </div>
+                            <div class="inputstyle">
+                                <el-input v-model="item.periodical" placeholder="请输入发表刊物名"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle" style="margin-left: 50px;">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>期号:</p>
+                            </div>
+                            <div class="inputstyle">
+                                <el-input v-model="item.xmwno" placeholder="请输入论文期号"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle" style="margin-left: 8px;">
+                                <p>研究院:</p>
+                            </div>
+                            <div class="inputstyle" style="margin-left: -8px;">
+                                <el-input v-model="item.xmyjname" placeholder="请输入研究院"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle" style="margin-left: 50px">
+                            <div class="tstitle">
+                                <el-tooltip class="item" effect="dark" content="该类型申请仅允许个人申请" placement="top">
+                                    <p><a style="color:#ff557f;">*</a>申请人:</p>
+                                </el-tooltip>
+                            </div>
+                            <div class="inputstyle">
+                                <el-input v-model="showunandnn" placeholder="请输入申请人" :disabled="true"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle" style="margin-left: 8px;">
+                                <p>添加备注:</p>
+                            </div>
+                            <div class="inputstyle" style="margin-left: -8px;width: 980px;">
+                                <el-input v-model="item.xmremark" placeholder="请输入备注"></el-input>
+                            </div>
+                        </div>
+                        <div class="uploaddiv" style="margin-top: 25px;">
+                            <el-upload :on-change="handleChangeFile"
+                                       :before-remove="beforeRemove"
+                                       :on-remove="handleRemove"
+                                       :on-exceed="handleExceed"
+                                       :limit="10"
+                                       :auto-upload="false"
+                                       list-type="text"
+                                       class="upload-demo"
+                                       :file-list="item.fileList"
+                                       accept=".pdf,.jpg,.doc,.png,.docx"
+                                       drag multiple><!--                   :on-preview="handlePreview"-->
+                                <i class="el-icon-upload"></i>
+                                <div class="el-upload__text" style="font-weight: bold">将文件拖到此处，或<em>点击上传</em></div>
+                                <div class="el-upload__text" style="font-weight: bold">只能上传<em>10</em>个<em>jpg/png/pdf/word</em>文件，且不超过<em>5M</em></div>
+                            </el-upload>
+                        </div>
+                    </div>
+                </el-collapse-item>
+                <el-collapse-item name="2">
+                    <template slot="title">
+                        <div class="cf-title" style="width: 99%">
+                            <p style="">类别选择</p>
+                        </div>
+                    </template>
+                    <div style="width: 98%;margin-left: 1%;">
+                        <el-table highlight-current-row :ref="'tb' + index"
+                                  @selection-change="handleSelectionChange" highlight-selection-row
+                                  @row-click="handleCurrentChange" :data="tableData"
+                                  height="289" tooltip-effect="dark" style="width: 100%">
+                            <el-table-column type="selection">
+                            </el-table-column>
+                            <el-table-column prop="lname" label="论文类别">
+                            </el-table-column>
+                            <el-table-column prop="score" label="分数">
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                    <div style="width: 100%">
+                        <a style="margin-left: 20px;color: rgb(145,145,149)">*论文类别可多选,只按最高标准计分,不重复计算; ESI热点论文和ESI高被引论文是论文的附加引用属性，可与论文同时计算科技成果计分。</a>
+                    </div>
+                    <div class="infostyle" style="margin-left: 70px">
+                        <div class="tstitle" style="margin-left: 8px;">
+                            <p>项目附则:</p>
+                        </div>
+                        <div class="inputstyle" style="margin-left: -8px;width: 955px;">
+                            <el-select style="width: 100%;" v-model="item.xmother" filterable clearable @clear="clearother"
+                                       @change="changeshowother" default-first-option placeholder="请选择项目附则">
+                                <el-option v-for="items in otheroptions" :key="items.content" :label="items.content"
+                                           :value="items.rid">
+                                </el-option>
+                            </el-select>
+                        </div>
+                    </div>
+                    <div v-show="item.showothercard" class="tstitle" style="width: 100%;padding-bottom: 10px;margin-top: 15px">
+                        <p style="margin-left: 77px;float: left">已选附则：</p>
+                        <p style="float: left;margin-left: 15px;width: 950px">{{item.showxmother}}</p>
+                    </div>
+                    <div class="infostyle" style="float: left;margin-left: 70px;">
+                        <div class="tstitle">
+                            <el-tooltip class="item" effect="dark" content="根据计分方法第七条，我校教师作为第一作者且学校署名为第一署名单位方可计分，附则情况另外计分。" placement="top">
+                                <p><a style="color:#ff557f;">*</a>作者排序:</p>
+                            </el-tooltip>
+                        </div>
+                        <div class="inputstyle">
+                            <el-select style="width: 100%;" v-model="item.xmpeopleorder" filterable
+                                       default-first-option placeholder="请选择作者排序" :disabled="item.disable1" >
+                                <el-option v-for="items in peopleorderoptions" :key="items.value" :label="items.label"
+                                           :value="items.value">
+                                </el-option>
+                            </el-select>
+                        </div>
+                    </div>
+                    <div class="infostyle" style="float: left; margin-left: 25px;margin-bottom: 20px">
+                        <div class="tstitle">
+                            <el-tooltip class="item" effect="dark" content="根据计分方法第七条，我校教师作为第一作者且学校署名为第一署名单位方可计分，附则情况另外计分。" placement="top">
+                                <p><a style="color:#ff557f;">*</a>学校署名:</p>
+                            </el-tooltip>
+                        </div>
+                        <div class="inputstyle">
+                            <el-select style="width: 100%;" v-model="item.xmschoolorder" filterable
+                                       default-first-option placeholder="请选择学校署名" :disabled="item.disable1">
+                                <el-option v-for="items in schoolorderoptions" :key="items.value" :label="items.label"
+                                           :value="items.value">
+                                </el-option>
+                            </el-select>
+                        </div>
+                    </div>
+
+                </el-collapse-item>
+            </el-collapse>
+        </div>
+    </div>
+
+    <div class="bottomcard" style="margin-bottom: 5px;"  th:insert="~{common/apply/apply_bottom :: copybottom}"></div>
+
+</div>
+<!--js-->
+<script type="text/javascript">
+    new Vue({
+        el: "#app",
+        data: {
+            isChecked:false,
+            showothercard:false, // 是否显示已选附则
+            disable1:false,// 是否禁用作者排序和学校署名选择器
+            applyPageName:'学术论文',
+            chinesedata:['一','二','三','四','五','六'],// 中文数字
+            editableTabs: [
+                {
+                    index: 0,
+                    title: '新建申报一',
+                    name: '0',
+                    activeName: '1',// 折叠面板参数
+                    xmname:"",// 论文名称
+                    periodical:"",// 发表期刊名
+                    xmwno: "", // 期号
+                    xmyjname: "", // 研究院
+                    xmremark:"",// 项目备注
+                    showxmother:"",// 用于显示的项目附则
+                    xmpeopleorder:"",// 作者排序
+                    xmschoolorder:"",// 学校署名
+                    userid:this.userid,// 申请人id
+                    // multipleSelection:[],// 选择的级别/类别
+                    fileList: [],// 文件列表
+                    disable1:false,// 是否禁用作者排序和学校署名选择器
+                    showothercard:false, // 是否显示已选附则
+                    // tableData: this.tableData,// 类别表格data
+                    currentRow: [],// 选中的行
+                }
+            ],//标签页数组
+            userid:"",// 申请人id
+            editableTabsValue: '0',//标签页默认选中
+            tabIndex: 0,//当前标签的下标
+            showunandnn:"",// 显示申请人账号和申请人姓名
+            xmpeople: "", // 申请人
+            qr: false,// 是否确认信息填写完毕
+            peopleorderoptions:[{ // 选择作者排序
+                value: '0',
+                label: '通讯作者'
+            }, {
+                value: '1',
+                label: '第一作者'
+            },{
+                value: '2',
+                label: '指导学生'
+            }],
+            schoolorderoptions:[{ // 选择项目细则列表
+                value: '1',
+                label: '第一署名'
+            }, {
+                value: '2',
+                label: '第二署名'
+            }],// 学校署名选择选项
+            otheroptions:[], // 选择项目细则列表
+            // 文件列表
+            fileList: [],
+            tableData: [],// 类别表格data
+            isChecked: false,
+        },
+        filters: {
+            subString5(value) {
+                if (!value) return "无";
+                return value;
+            }
+        },
+        mounted(){
+            document.getElementById("input-xmname").focus();
+        },
+        methods: {
+            // 清空附则选择
+            clearother(){
+                this.editableTabs[this.editableTabsValue].showothercard = false
+                this.editableTabs[this.editableTabsValue].showxmother = ""
+                this.editableTabs[this.editableTabsValue].disable1 = false
+            },
+            // 选择项目细则触发
+            changeshowother(value){
+                console.log(this.editableTabs[this.editableTabsValue])
+                this.editableTabs[this.editableTabsValue].showothercard = true
+                this.editableTabs[this.editableTabsValue].showxmother = this.otheroptions.find(item => item.rid === value).showcontent
+                if (this.editableTabs[this.editableTabsValue].showxmother.includes("校为第二署名单位")
+                    &&this.editableTabs[this.editableTabsValue].showxmother.includes("我校教师为第一作者")){
+                    this.editableTabs[this.editableTabsValue].disable1 = true // 禁用学校署名与作者排序选择
+                    this.editableTabs[this.editableTabsValue].xmpeopleorder = '1'
+                    this.editableTabs[this.editableTabsValue].xmschoolorder = '2'
+                }else if (this.editableTabs[this.editableTabsValue].showxmother.includes("作为通讯作者")
+                    &&this.editableTabs[this.editableTabsValue].showxmother.includes("为外单位兼职博导或硕导")){
+                    this.editableTabs[this.editableTabsValue].disable1 = true // 禁用学校署名与作者排序选择
+                    this.editableTabs[this.editableTabsValue].xmpeopleorder = '0'
+                    this.editableTabs[this.editableTabsValue].xmschoolorder = '1'
+                }else if (this.editableTabs[this.editableTabsValue].showxmother.includes("我校为第一署名")
+                    &&this.editableTabs[this.editableTabsValue].showxmother.includes("我校教师作为通讯作者的")){
+                    this.editableTabs[this.editableTabsValue].disable1 = true // 禁用学校署名与作者排序选择
+                    this.editableTabs[this.editableTabsValue].xmpeopleorder = '0'
+                    this.editableTabs[this.editableTabsValue].xmschoolorder = '1'
+                }else if (this.editableTabs[this.editableTabsValue].showxmother.includes("我校导师为通讯作者")
+                    &&this.editableTabs[this.editableTabsValue].showxmother.includes("对于与我校签订了联合培养博士或硕士的学校")){
+                    this.editableTabs[this.editableTabsValue].disable1 = true // 禁用学校署名与作者排序选择
+                    this.editableTabs[this.editableTabsValue].xmpeopleorder = '0'
+                    this.editableTabs[this.editableTabsValue].xmschoolorder = '1'
+                }else if (this.editableTabs[this.editableTabsValue].showxmother.includes("在读博士期间形成的第一作者成果")
+                    &&this.editableTabs[this.editableTabsValue].showxmother.includes("湖南工学院为第二单位署名")){
+                    this.editableTabs[this.editableTabsValue].disable1 = true // 禁用学校署名与作者排序选择
+                    this.editableTabs[this.editableTabsValue].xmpeopleorder = '1'
+                    this.editableTabs[this.editableTabsValue].xmschoolorder = '2'
+                }
+            },
+            // 新建标签页
+            handleTabsEdit(currentName, action) {
+                const _this = this;
+                //添加标签页
+                if (currentName === 'add') {
+                    if ((_this.editableTabs.length) <= 5) {
+                        console.info(_this.tabIndex);
+                        let newTabIndex = ++_this.tabIndex + '';
+                        _this.editableTabs.push({title: '新建申报' + this.chinesedata[_this.tabIndex], name: newTabIndex,
+                            index:_this.tabIndex,
+                            activeName: '1',// 折叠面板参数
+                            xmname:"",// 论文名称
+                            periodical:"",// 发表期刊名
+                            xmwno: "", // 期号
+                            xmyjname: "", // 研究院
+                            xmremark:"",// 项目备注
+                            showxmother:"",// 用于显示的项目附则
+                            xmpeopleorder:"",// 作者排序
+                            xmschoolorder:"",// 学校署名
+                            userid:this.userid,// 申请人id
+                            // multipleSelection:[],// 选择的级别/类别
+                            fileList: [],// 文件列表
+                            disable1:false,// 是否禁用作者排序和学校署名选择器
+                            showothercard:false, // 是否显示已选附则
+                            currentRow: [],// 选择的级别/类别
+                        });
+                        _this.editableTabsValue = newTabIndex;
+                    } else {
+                        _this.$notify({
+                            title: '温馨提示',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="margin-top: -5px;font-weight: bold">一次只能申请6个!</p>',
+                            position: 'top-left'
+                        });
+                    }
+                    return false;
+                } else {
+                    setTimeout(tmp => {
+                        // 回显表格
+                        let tb = _this.$refs['tb' + currentName][0];
+                        tb.selection = []
+                        let againRow = _this.editableTabs[currentName].currentRow
+                        for (let i = 0; i < againRow.length; i++) {
+                            tb.toggleRowSelection(againRow[i], true)
+                        }
+                        _this.editableTabsValue = currentName;
+                    }, 100)
+                }
+            },
+            // 删除标签页
+            removeTab(targetName) {
+                const _this = this;
+                //删除标签页
+                if (_this.editableTabs.length <= 1) {
+                    _this.$notify({
+                        title: '温馨提示',
+                        dangerouslyUseHTMLString: true,
+                        message: '<p style="margin-top: -5px;font-weight: bold">最后一个了哦,不允许删除!</p>',
+                        position: 'top-left'
+                    });
+                    return false;
+                }
+                let tabs = _this.editableTabs;
+                _this.editableTabs = tabs.filter(tab => tab.name !== targetName);
+                for (let i = 0; i <_this.editableTabs.length ; i++) {
+                    if (_this.editableTabs[i].name != i) {
+                        _this.editableTabs[i].name = i+'';
+                        _this.editableTabs[i].title = "新增申报"+this.chinesedata[i];
+                    }
+                }
+                _this.editableTabsValue = _this.editableTabs[_this.editableTabs.length-1].name;
+                _this.tabIndex = (_this.editableTabs.length-1);
+            },
+            //文件超出方法
+            handleExceed(files, fileList) {
+                this.$notify({
+                    title: '',
+                    dangerouslyUseHTMLString: true,
+                    message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">最多只能上传10个文件</p>',
+                    position: 'top-left'
+                });
+            },
+            // 在删除文件前的操作
+            beforeRemove(file, fileList) {
+                return this.$confirm(`确定移除 ${ file.name }？`);
+            },
+            // 是否确保信息无误与填写完整
+            handleCheckedCitiesChange() {
+                var can = 1;// 0为不可提交 1为可提交
+                var errortext = "";
+                this.editableTabs.forEach((item,index)=>{
+                    if (item.xmname == ""){errortext=errortext+item.title+'的论文名称，';can = 0;}
+                    if (item.periodical == ""){errortext=errortext+item.title+'的发表期刊名，';can = 0;}
+                    if (item.xmwno == ""){errortext=errortext+item.title+'的期号，';can = 0;}
+                    // if (item.xmyjname == ""){errortext=errortext+item.title+'的研究院名，';can = 0;}
+                    if (item.xmpeopleorder == ""){errortext=errortext+item.title+'的作者排序，';can = 0;}
+                    if (item.xmschoolorder == ""){errortext=errortext+item.title+'的学校署名，';can = 0;}
+                    if (item.currentRow.length <= 0){errortext=errortext+item.title+'的类别，';can = 0;}
+                    if (item.xmpeople = ""){errortext=errortext+item.title+'的申请人，';can = 0;}
+                })
+                if (can == 0){
+                    this.$notify(
+                        {
+                            title: '温馨提示',
+                            message: '系统检测您有以下信息未进行填写或填写错误：'+ errortext +'请填写后再进行提交。',
+                            position: 'top-left',
+                            type: 'error'});
+                    this.isChecked = false;
+                    this.qr = false;
+                }else {
+                    this.isChecked = true;
+                    this.qr = !this.qr
+                }
+            },
+            //文件上传方法 限制文件上传类型与大小
+            handleChangeFile(file, fileList) {
+                const allowedExtensions = ['jpg', 'png', 'pdf', 'doc', 'docx'];
+                const fileExtension = file.name.split('.').pop();
+                if (file.size / 1024 / 1024 < 5 && allowedExtensions.includes(fileExtension.toLowerCase())) {
+                    this.editableTabs[this.editableTabsValue].fileList.push(file);
+                } else {
+                    if (file.size / 1024 / 1024 >= 5) {
+                        // 错误时显示的信息
+                        this.$notify({
+                            title: '',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">文件过大</p>',
+                            position: 'top-left'
+                        });
+                    } else {
+                        // 错误时显示的信息
+                        this.$notify({
+                            title: '',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">不支持该文件类型</p>',
+                            position: 'top-left'
+                        });
+                    }
+                    this.handleRemove(file);
+                }
+            },
+            // 删除文件
+            handleRemove(file, fileList) {
+                this.editableTabs[this.editableTabsValue].fileList =
+                    this.editableTabs[this.editableTabsValue].fileList.filter((f) => file.name !== f.name)
+                // 强制刷新组件以更新文件列表
+                this.$forceUpdate();
+            },
+            commit(rows) {
+                var can = 1;// 0为不可提交 1为可提交
+                var errortext = "";
+                this.editableTabs.forEach((item,index)=>{
+                    if (item.xmname == ""){errortext=errortext+item.title+'的论文名称，';can = 0;}
+                    if (item.periodical == ""){errortext=errortext+item.title+'的发表期刊名，';can = 0;}
+                    if (item.xmwno == ""){errortext=errortext+item.title+'的期号，';can = 0;}
+                    // if (item.xmyjname == ""){errortext=errortext+item.title+'的研究院名，';can = 0;}
+                    if (item.xmpeopleorder == ""){errortext=errortext+item.title+'的作者排序，';can = 0;}
+                    if (item.xmschoolorder == ""){errortext=errortext+item.title+'的学校署名，';can = 0;}
+                    if (item.currentRow.length <= 0){errortext=errortext+item.title+'的类别，';can = 0;}
+                    if (item.xmpeople = ""){errortext=errortext+item.title+'的申请人，';can = 0;}
+                })
+                if (can == 0){
+                    this.$notify(
+                        {
+                            title: '温馨提示',
+                            message: '系统检测您有以下信息未进行填写或填写错误：'+ errortext +'请填写后再进行提交。',
+                            position: 'top-left',
+                            type: 'error'});
+                }else {
+                    this.editableTabs.forEach((item,index)=> {
+                        var urlSearchParams = new FormData();
+                        for (let i = 0; i < item.fileList.length; i++) {
+                            urlSearchParams.append("file", item.fileList[i].raw)// 文件
+                        }
+                        urlSearchParams.append("xmname", item.xmname)// 论文名称
+                        urlSearchParams.append("periodical", item.periodical)// 发表期刊名
+                        urlSearchParams.append("xmwno", item.xmwno)// 期号
+                        urlSearchParams.append("xmyjname", item.xmyjname)// 研究院
+                        urlSearchParams.append("xmremark", item.xmremark)// 项目备注
+                        urlSearchParams.append("xmpeopleorder", item.xmpeopleorder)// 作者排序
+                        urlSearchParams.append("xmschoolorder", item.xmschoolorder)// 学校署名
+                        urlSearchParams.append("showxmother", item.showxmother)//  用于显示的项目附则
+                        var leidlist = ""
+                        for (let i = 0; i < item.currentRow.length; i++) {
+                            leidlist = leidlist + item.currentRow[i].leid + ','
+                        }
+                        let xmlb = JSON.stringify(leidlist);
+                        urlSearchParams.append("xmlb", xmlb)//  选择的类别
+                        urlSearchParams.append("userid", this.userid)// 唯一键值 申请人id
+
+                        axios.post("../paperApplyInfo/commit", urlSearchParams, {
+                            headers: {
+                                "Content-Type": "multipart/form-data" // 设置请求头
+                            }
+                        }).then(res => {
+                            if (res.data.code != 1) {
+                                // 错误时显示的信息
+                                this.$notify({
+                                    title: '',
+                                    dangerouslyUseHTMLString: true,
+                                    message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">'
+                                        + item.title + res.data.msg + '</p>',
+                                    position: 'top-left'
+                                });
+                            } else {
+                                this.$notify({
+                                    title: '',
+                                    dangerouslyUseHTMLString: true,
+                                    message: '<p style="color: #33ce0c;margin-top: -5px;font-weight: bold">'
+                                        + item.title + res.data.msg + '</p>',
+                                    position: 'top-left'
+                                });
+                                if ( this.editableTabs.length == 1){
+                                    this.$notify({
+                                        title: '温馨提示',
+                                        message: '您的申请已经上传处理中，我们会加快进度为您审核。如想查看申请详情，请前往个人申请历史查看。',
+                                        position: 'top-left',
+                                        type: 'success',
+                                        offset: 60
+                                    });
+                                    setTimeout(function () {
+                                        window.parent.postMessage({url: 'project_application/toProject_apply'}, "*");
+                                    }, 3000)
+                                }else {
+                                    let tabs = this.editableTabs;
+                                    this.editableTabs = tabs.filter(tab => tab.index != item.index);
+                                    this.editableTabsValue = this.editableTabs[this.editableTabs.length-1].name;
+                                    this.tabIndex = (this.editableTabs.length-1);
+                                }
+                            }
+                        })
+                    })
+                }
+                // this.$notify({
+                //     title: '',
+                //     dangerouslyUseHTMLString: true,
+                //     message: '<p style="color: #33ce0c;margin-top: -5px;font-weight: bold">提交成功！</p>',
+                //     position: 'top-left'
+                // });
+                // setTimeout(function () {
+                //     location.replace(location)
+                // }, 2000)
+
+            },
+            // 选中行触发
+            handleSelectionChange(selection) {
+                this.editableTabs[this.editableTabsValue].currentRow = []
+                let tb = this.$refs['tb' + this.editableTabsValue][0];
+                this.editableTabs[this.editableTabsValue].currentRow = tb.selection;
+                console.log(this.editableTabs[this.editableTabsValue].currentRow)
+            },
+            handleCurrentChange(selection) {
+                this.editableTabs[this.editableTabsValue].currentRow = []
+                let tb = this.$refs['tb' + this.editableTabsValue][0];
+                this.editableTabs[this.editableTabsValue].currentRow = tb.selection
+                tb.toggleRowSelection(selection, true);            
+            },
+
+        },
+        created () {
+            axios.get("../paperApplyInfo/selectlxorfs",{}).then(res => {
+                this.tableData = res.data
+            })
+            axios.get("../additional_rules/get/4",{}).then(res => {
+                this.otheroptions = res.data.data
+            })
+            axios.get("../bookApplyInfo/getuserinfoback",{}).then(res => {
+                this.userid = res.data.id
+                this.xmpeople = res.data.nickname
+                this.username = res.data.username
+                this.showunandnn = this.xmpeople + " " + this.username
+            })
+        },
+    })
+</script>
+</body>
+</html>

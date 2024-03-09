@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<style type="text/css">
+    .el-pagination .el-select .el-input .el-input__inner,.el-input__inner{border-radius:4px}
+    .el-pagination{margin-left:35%}
+    .topside{margin-top:2px;height:38px}
+    .el-button--mini{font-size:12px}
+    .el-input{width:auto}
+    .demo-image__lazy{height:120px;overflow-y:auto}
+    .demo-image__lazy .el-image{display:block;min-height:110px;margin-bottom:10px}
+    .el-textarea{width:500px}
+    .el-icon-time{display:none}
+    .el-tabs el-tabs--top{margin-top:-10px}
+    .demo-autocomplete{background-color:#f5f7fa;border-radius:5px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+    .sub-title{font-weight:bold;margin-right:10px;margin-bottom:10px}
+    .el-upload-list__item.is-success .el-upload-list__item-status-label{display:none}
+    .el-upload-list--picture .el-upload-list__item{width:350px}
+    .file-item{color: black;height: 30px;border-radius: 10px;width: 100%;margin-top: 5px;line-height: 30px;}
+    .file-item a{color: #1C86EE;}
+    .file-item a:hover{cursor: pointer;text-decoration-line: underline;}
+    .file-item:hover{background-color: rgba(238, 238, 238, 0.88);}
+    .demo-autocomplete .el-textarea__inner{min-height: 50px !important;}
+</style>
+<body>
+<div id="app">
+    <div class="topside">
+        <el-select style="width: 300px;" v-model="username" filterable
+                   @blur="selectBlur" placeholder="请输入备案名或选择成员"
+                   :filter-method="filterMethod" size="small" clearable>
+            <el-option v-for="item in options_pro" :key="item.value" :label="item.label" :value="item.value">
+            </el-option>
+        </el-select>
+        <el-button type="primary" size="small" @click="selectRecord" style="margin-left: 10px">查询</el-button>
+        <el-button type="primary" size="small" @click="opensaveRecord" >批量通过</el-button>
+    </div>
+    <el-dialog
+            title="驳回原因"
+            :visible.sync="dialogVisibleBack"
+            width="50%" :close-on-click-modal="false"
+            @close="deleteBack"
+            class="hahahaha">
+        <el-row class="demo-autocomplete" style="padding: 20px;">
+            <el-col :span="24">
+                <span class="sub-title">驳回原因:</span>
+                <el-autocomplete style="margin-top: 10px;height: 50px;" v-model="reason" :fetch-suggestions="querySearch" placeholder="请输入审核原因以反馈给用户"
+                                 clearable type="textarea" autosize="true"></el-autocomplete>
+            </el-col>
+        </el-row>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" @click="dialogVisibleBack = false" style="margin-right: 10px;">取 消</el-button>
+            <el-button size="small" type="primary" @click="saveBack">确 定</el-button>
+        </span>
+    </el-dialog>
+    <div>
+        <template>
+            <el-tabs v-model="radio" type="border-card" @tab-click="handleClick">
+                <el-tab-pane :label="'待审核 ' + total0" name="0"></el-tab-pane>
+                <el-tab-pane  :label="'已通过 ' + total1" name="1"></el-tab-pane>
+                <el-tab-pane  :label="'未通过 ' + total2" name="2"></el-tab-pane>
+            </el-tabs>
+            <el-table :data="tableData" style="width: 100%;margin-top: -30px;" :height="publicHeight" ref="multipleTable" tooltip-effect="dark"
+                      @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="30"></el-table-column>
+
+                <el-table-column label="备案信息" align="center">
+                    <template slot-scope="scope">
+                        <div >
+                            <el-row style="padding: 5px 0px;border: 1px solid #919191;padding-left: 10px;text-align: left;">
+                                <el-col :span="24">
+                                    <span style="font-size: 18px;font-weight: bold;margin-right: 20px;color: #409EFF;">{{ scope.row.name }}</span>
+                                    <span>申请日期&nbsp;&nbsp;{{ scope.row.date }}</span>
+                                </el-col>
+                            </el-row>
+                            <el-row style="padding: 3px 0px;border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2">类&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;型 :</el-col>
+                                <el-col :span="22" style="text-align: left;font-weight: bold;">
+                                    <span>{{ scope.row.trname }} -- {{ scope.row.lname }}</span>
+                                </el-col>
+                            </el-row>
+                            <el-row style="border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2" style="padding: 3px;">附件信息 :</el-col>
+                                <el-col :span="9" style="padding: 3px;border-right: 1px solid #919191; ">
+                                    <div class="demo-image" style="float: left;">
+                                        <div class="block" style="display: inline-block;" v-for="url in scope.row.images.slice(0,3)" :key="url">
+                                            <el-image scroll-container=".el-table__body-wrapper"
+                                                      style="width: 60px; height:60px;margin-right: 5px;border: 1px solid #E4E7ED;"
+                                                      :preview-src-list="scope.row.images" :initial-index="url" :src="url" fit="cover"
+                                                      lazy="true"></el-image>
+                                        </div>
+                                    </div>
+                                    <div style="float: left;margin-top: 36px;margin-left: 10px;">
+                                        <el-button size="mini" v-if="scope.row.status==0 || scope.row.status==2" type="success"
+                                                   @click="queryFilePath(scope.$index, scope.row.id)">更多附件</el-button>
+
+                                        <el-button size="mini" v-if="scope.row.status==1" type="primary"
+                                                   @click="loadRecord(scope.$index, scope.row)">下载附件</el-button>
+                                    </div>
+                                </el-col>
+                                <el-col :span="2" style="padding: 3px;">团队/个人 :</el-col>
+                                <el-col :span="9" style="padding: 3px;text-align: left;">
+                                    <span v-for="(item,index) in scope.row.teamName">
+                                        <span v-if="index == 0" style="margin-right: 10px;">
+                                            <el-tag size="small" type="danger" style="margin-bottom: 5px;">{{item.nickname}}{{item.username}}</el-tag>
+                                        </span>
+                                        <span v-else style="margin-right: 10px;margin-bottom: 5px;">
+                                            <el-tag size="small" style="margin-bottom: 5px;">{{item.nickname}}{{item.username}}</el-tag>
+                                        </span>
+                                    </span>
+                                </el-col>
+                            </el-row>
+
+                            <el-row style="padding: 3px;border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2">备&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;注 :</el-col>
+                                <el-col :span="22" style="text-align: left;">{{ scope.row.description }}</el-col>
+                            </el-row>
+
+                            <el-row style="padding: 3px;border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2">结果反馈 :</el-col>
+                                <el-col :span="22" style="text-align: left;">{{ scope.row.rejection }}</el-col>
+                            </el-row>
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" fixed="right" width="180" >
+                    <template slot-scope="scope">
+                        <!--<el-button size="mini" @click="queryFilePath(scope.$index, scope.row.id)">更多附件</el-button>-->
+                        <el-button v-if="scope.row.status==0" size="mini" type="success"
+                                   @click="handleEdit(scope.$index, scope.row.id)" >通 过</el-button>
+                        <el-button v-if="scope.row.status!=2" size="mini" type="danger"
+                                   @click="open(scope.$index, scope.row.id)">驳 回</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </template>
+        <div style="background-color: white;">
+            <el-pagination
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :current-page="pageNum"
+                    :page-sizes="[5, 10, 20, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total">
+            </el-pagination>
+        </div>
+
+        <el-dialog title="查看附件" :visible.sync="dialogVisibleQuery" width="50%" >
+            <div style="margin-left: -200px">
+            </div>
+            <div v-for="(file, index) in fileListFilePath" :key="index" class="file-item">
+                <img th:src="@{/images/filelistlogo.png}" style="width: 20px;margin-left: 10px">
+                <a style="margin-left: 5px;color: rgb(64,64,64)">{{ file.name }}</a>
+                <img th:src="@{/images/download.png}" style="width: 18px;margin-left: 10px;margin-top:5px;
+                float: right;margin-right: 14px;cursor: pointer;">
+                <a @click="handlePreview(file)" style="float: right;cursor: pointer;">查看</a>
+            </div>
+        </el-dialog>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/filing/filing_review.js}"></script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<!-- 主界面  -->
+<style type="text/css">
+    .el-menu-item-group__title{padding: 0px}
+    .el-menu-item:hover{background-color: #3354cc !important;font-size: 15px;font-weight: bold}
+    .el-main {margin: 5px;padding: 0;overflow: hidden;}
+    .iframe {border: none;width: 100%;}
+    .footer{text-align: center;padding-bottom: 6px;}
+    .el-menu-item, .el-submenu__title{height: 40px;line-height: 40px;}
+    .el-menu-item {background-color: rgba(0, 0, 0, 0.1);}
+    .el-menu-item.is-active {background: #334CCCFF !important;}
+    .el-icon-handle-round {background: url('../../static/images/handle-round.png') center center no-repeat;background-size: 16px;height: 24px;color: #fff;}
+    .eltags{margin: 5px;}
+    .el-tab-pane {display: none;}
+    .infinite-list-item{border: 1px solid #909399;margin-bottom: 5px;padding:10px;}
+</style>
+<body style="min-width: 1200px;">
+<div id="wrapper" v-cloak>
+    <el-container>
+        <el-aside :width="isCollapse ? '64px' : '180px'" style="background-color:#091B2A; transition:width .5s; ">
+            <div style="background-color: #064089; height: 50px; line-height: 50px; text-align: center; font-size: 20px;"><!--#104c95-->
+                <transition name="el-fade-in-linear">
+                    <span name="fade" v-show="!isCollapse">
+                        <a style="font-weight: 600;color: #FFFFFF;" href="frame">湖南工学院</a>
+                    </span>
+                </transition>
+            </div>
+            <!-- 菜单  -->
+            <el-menu style="border: none;" background-color="#091B2A" text-color="#fff" active-text-color="#fff"
+                     :default-active="src" @select="handleSelect" :collapse="isCollapse">
+                <el-menu-item index="index">
+                    <i class="el-icon-data-line"></i>
+                    <span slot="title">首页</span>
+                </el-menu-item>
+                <el-menu-item :index="item.path" v-for="item in permissionList">
+                    <i :class=`el-icon-${item.icon}`></i>
+                    <span slot="title">{{item.name}}</span>
+                </el-menu-item>
+                <!--<el-submenu index="1" v-if="showsq==true">
+                    <template slot="title">
+                        <i class="el-icon-circle-plus"></i>
+                        <span>科技成果申请</span>
+                    </template>
+                    <el-menu-item-group>
+                        <el-menu-item :index="item.path" style="height: 40px;line-height: 40px;margin-left: -18px" v-for="item in applicationurlList">
+                            <i class="el-icon-handle-round"></i>{{item.name}}</el-menu-item>
+                    </el-menu-item-group>
+                </el-submenu>-->
+            </el-menu>
+        </el-aside>
+
+        <el-container>
+            <el-header style="background-color: #064089;height: 50px; line-height: 50px; color: white;">
+                <el-row>
+                    <el-col :span="1" style="float: left; padding-top: 3px;">
+                        <i style="font-size: 22px; cursor: pointer" :class="[isCollapse ? 'el-icon-s-unfold' : 'el-icon-s-fold']" @click="handleCollapse"></i>
+                    </el-col>
+                    <el-col :span="6">
+                        <a style="font-size: 15px;font-weight: 600;color: #FFFFFF;" href="frame">科技成果申报服务平台</a>
+                    </el-col>
+                    <el-col :span="3.5">
+                        总科技分:
+                        <span style="margin-left: 10px;font-weight: bold;" v-if="total>0">{{total}}</span>
+                        &nbsp;分
+                    </el-col>
+                    <el-col :span="3.5">
+                        &nbsp;&nbsp;(&nbsp;&nbsp;可换酬金:
+                        <span style="margin-left: 10px;font-weight: bold;" v-if="exchange>0">{{exchange}}</span>
+                        &nbsp;分
+                    </el-col>
+                    <el-col :span="3.5" style="padding-left: 10px;">
+                        普通科技分:
+                        <span style="margin-left: 10px;font-weight: bold;" v-if="ordinary>0">{{ordinary}}</span>
+                        &nbsp;分&nbsp;&nbsp;)
+                    </el-col>
+                    <el-col :span="1.5">
+                        <el-link type="warning" @click="dialogSorceVisible = true" style="margin-left: 10px;">查看详情</el-link>
+                    </el-col>
+
+                    <div style="text-align: right ;display: flex;float: right">
+                        <span style="color: white; margin-right: 10px">
+                            <el-tooltip class="item" effect="light" :content="tname" placement="bottom">
+                                <span>{{tname | subString}}</span>
+                            </el-tooltip>&nbsp;&nbsp;{{user.nickname}}
+                        </span>
+                        <el-dropdown>
+                            <img th:src="@{../images/hugon.jpg}" style="width: 35px; height: 35px; margin-right: 10px; border-radius: 50%">
+                            <el-dropdown-menu slot="dropdown" style="color: black; cursor: pointer; text-align: center;">
+                                <span @click="dialogFormVisible = true" style="display:block; width: 100px; ">个人信息</span>
+                                <span   @click="changeIndex('updatePassword')" style="display:block; padding: 10px 0; width: 100px; ">修改密码</span>
+                                <span @click="logout" style="display:block; width: 100px;  ">退出</span>
+                            </el-dropdown-menu>
+                        </el-dropdown>
+                    </div>
+
+                </el-row>
+            </el-header>
+            <!-- 主体区域 -->
+            <el-main>
+                <iframe id="myiframe" name="mainFrame" style="width: 100%;height: 100%;"  :src="handleUrl(src)"
+                        frameborder="0" :style="{'height':iframeHeight}" scrolling="auto"></iframe>
+            </el-main>
+            <!--<div class="footer">
+                <img th:src="@{images/favicon.ico}" style="display:inline-block; vertical-align:middle;margin-left: 10px;" width="18" height="18">
+                <a href="https://www.hnit.edu.cn/" style="text-decoration: none;color: #000000;" target="view_window"><b>湖南工学院</b></a>
+            </div>-->
+        </el-container>
+    </el-container>
+
+
+    <el-dialog title="科技分账户详情" :close-on-press-escape="false" :close-on-click-modal="false"
+               :visible.sync="dialogSorceVisible" width="55%" top="5%">
+        <div style="width: 100%;height: 500px;">
+            <div style="width: 30%;float: left;">
+                <p style="margin-left: 25%;">
+                    <el-avatar :size="80">
+                        <img th:src="@{../images/hugon.jpg}" />
+                    </el-avatar>
+                </p>
+                <h2 style="margin: 10px 0;">科研任务标准&nbsp;{{baseScore}}</h2>
+                <!-- 否就不要显示  -->
+                <div>
+                    <el-tag v-for="job in sortedJobs" :key="job" :type="job === '本科' || job === '研究生' ? 'warning' : 'success'" class="eltags">{{ job }}</el-tag>
+                    <el-tag class="eltags" v-if="academy === 1">归属研究院</el-tag>
+                    <el-tag class="eltags" v-if="academyCare === 1"> 承担研究院管理工作</el-tag>
+                </div>
+                <div style="font-size: 16px;">
+                    <p style="margin: 10px 0;" v-if="total>0">总科技分 :<span style="margin-left: 10px;font-weight: bold;">{{total}}</span>&nbsp;分</p>
+                    <p style="margin: 10px 0;" v-if="exchange>0">可换酬金 :<span style="margin-left: 10px;font-weight: bold;">{{exchange}}</span>&nbsp;分</p>
+                    <p style="margin: 10px 0;" v-if="ordinary>0">普&nbsp;通&nbsp;&nbsp;分 :
+                        <span style="margin-left: 10px;font-weight: bold;">{{ordinary}}</span>&nbsp;分
+                    </p>
+                    <p style="margin: 10px 0;" v-if="loan>0">提前抵扣 :
+                        <span style="margin-left: 10px;font-weight: bold;">{{loan}}</span>&nbsp;分
+                    </p>
+                </div>
+                <p style="color: #909399;padding-right: 10px;">注:提前抵扣的科技分,会在年度考核时,根据(优先普通科技分)规则自动抵消</p>
+            </div>
+            <div style="width: 69%;float: left;">
+                <el-tabs v-model="activeName" @tab-click="handleTabClick">
+                    <el-tab-pane label="当前月" name="1" @click="Current()">当前月</el-tab-pane>
+                    <el-tab-pane label="自定义日期" name="2">自定义日期</el-tab-pane>
+                </el-tabs>
+                <el-row v-if="activeName ==2" style="margin-top: -10px;">
+                    <el-col :span="3"><el-button type="text" :style="{color: selectedPeriod === 3 ? '#409EFF' : 'black'}" @click="selectPeriod(3)">近三月</el-button></el-col>
+                    <el-col :span="3"><el-button type="text" :style="{color: selectedPeriod === 6 ? '#409EFF' : 'black'}" @click="selectPeriod(6)">近半年</el-button></el-col>
+                    <el-col :span="3"><el-button type="text" :style="{color: selectedPeriod === 12 ? '#409EFF' : 'black'}" @click="selectPeriod(12)">近一年</el-button></el-col>
+                </el-row>
+                <template>
+                    <div style="height: 400px; overflow: auto;" >
+                        <ul class="infinite-list" style="overflow: auto;" v-if="accountScore && accountScore.length > 0">
+                            <li v-for="(account, index) in accountScore" :key="index" class="infinite-list-item">
+                                <span v-if="account.type === 1">
+                                    <el-row style="margin-bottom: 10px;">
+                                        <el-col :span="17">
+                                            <el-tooltip class="item" effect="dark" :content="account.lname + '(' + account.pname + ')'" placement="top-start">
+                                                <span>{{ truncateText(account.lname, account.pname) }}</span>
+                                            </el-tooltip>
+                                        </el-col>
+                                        <el-col :span="7" style="text-align: right;">
+                                            <span v-if="account.type === 1" style="color:green">+ {{account.score}} 分
+                                                <span v-if="account.status === 1"> (可换酬金)</span>
+                                                <span v-else> (普通科技分)</span>
+                                            </span>
+                                            <span v-else style="color: red">- {{account.score}} 分
+                                                <span v-if="account.status === 1"> (可换酬金)</span>
+                                                <span v-else> (普通科技分)</span>
+                                            </span>
+
+                                        </el-col>
+                                    </el-row>
+                                    <el-row style="margin-bottom: 10px;">
+                                        <el-col :span="17">{{account.trname}}</el-col>
+                                        <el-col :span="6" style="text-align: right;">{{account.createDate}}</el-col>
+                                    </el-row>
+                                </span>
+                                <span v-else-if="account.type === 2">
+                                    <el-row style="margin-bottom: 10px;">
+                                        <el-col :span="17">
+                                            <el-tooltip class="item" effect="dark" :content="account.trname" placement="top-start">
+                                                <span>{{ truncateText(account.trname, "") }}</span>
+                                            </el-tooltip>
+                                        </el-col>
+                                        <el-col :span="7" style="text-align: right;">
+                                            <span v-if="account.type === 1" style="color:green">+ {{account.score}} 分
+                                                <span v-if="account.status === 1"> (可换酬金)</span>
+                                                <span v-else> (普通科技分)</span>
+                                            </span>
+                                            <span v-else style="color: red">- {{account.score}} 分
+                                                <span v-if="account.status === 1"> (可换酬金)</span>
+                                                <span v-else-if="account.status === 2"> (普通科技分)</span>
+                                                <span v-else> (提前抵扣分)</span>
+                                            </span>
+
+                                        </el-col>
+                                    </el-row>
+                                    <el-row style="margin-bottom: 10px;">
+                                        <el-col :span="17">{{account.lname}} 到 {{account.pname}}</el-col>
+                                        <el-col :span="6" style="text-align: right;">{{account.createDate}}</el-col>
+                                    </el-row>
+                                </span>
+
+                            </li>
+                            <p @click="handleScroll" style="cursor: pointer;text-align: center;color: #909399;">点击加载更多</p>
+                        </ul>
+                    </div>
+                </template>
+                <p style="margin-bottom: 5px;color: #909399;margin-top: 5px;text-align: right;">科技分账户明细</p>
+            </div>
+        </div>
+    </el-dialog>
+
+    <!--个人信息弹窗-->
+    <el-dialog title="用户信息" :visible.sync="dialogFormVisible" width="40%">
+        <el-form>
+            <el-form-item label="工号" label-width="100px">
+                <el-input v-model="user.username" :disabled="true" autocomplete="off" onfocus=this.blur()  style="width: 80%"></el-input>
+            </el-form-item>
+            <el-form-item label="姓名" label-width="100px">
+                <el-input v-model="user.nickname" :disabled="true" autocomplete="off" onfocus=this.blur()  style="width: 80%"></el-input>
+            </el-form-item>
+
+            <el-form-item label="电话号码" label-width="100px">
+                <el-input v-model="user.phone" :disabled="true"  autocomplete="off" onfocus=this.blur() style="width: 80%"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <el-dialog title="系统提示" :visible.sync="dialogVisible" :close-on-press-escape="false"
+               :close-on-click-modal="false" :show-close="false" width="45%">
+        <span style="font-size: 16px;color: red;">系统检测到你使用的是初始密码，为了保证账号的安全，请先修改你的密码!</span>
+        <el-form>
+            <el-form-item label="原密码" label-width="100px">
+                <el-input style="width: 80%;" type="password" placeholder="原密码" v-model="userInfo.OldPassword"></el-input>
+            </el-form-item>
+            <el-form-item label="新密码" label-width="100px">
+                <el-input style="width: 80%;" type="password" placeholder="新密码" v-model="userInfo.NewPassword"></el-input>
+            </el-form-item>
+            <el-form-item label="确认密码" label-width="100px">
+                <el-input style="width: 80%;" type="password" placeholder="确认密码" v-model="userInfo.APassword"></el-input>
+            </el-form-item>
+        </el-form>
+        <p style="font-size: 14px;text-align: center;">以字母开头,长度在6~18之间,包含字母、数字和特殊符号</p>
+        <div style="text-align: center;margin-top: 30px;">
+            <el-button type="primary" @click="updatePassword" size="small">修 改 密 码</el-button>
+            <el-button type="danger" @click="logout" size="small">退 出 登 录</el-button>
+        </div>
+    </el-dialog>
+</div>
+<script>
+    function call() {
+        vm.user = JSON.parse(sessionStorage.getItem("user"))
+    }
+
+    function changeIndex(index) {
+        vm.src = index
+        window.setInterval("reinitIframe()", 50);
+    }
+
+    // 实现 iframe  高度自适应
+    function reinitIframe() {
+        const iframe = document.getElementById("myiframe");
+        try {
+            const bHeight = iframe.contentWindow.document.body.scrollHeight;
+            const dHeight = iframe.contentWindow.document.documentElement.scrollHeight;
+            iframe.height = Math.max(bHeight, dHeight, (window.innerHeight - 105));
+        } catch (ex) {
+        }
+    }
+    window.setInterval("reinitIframe()", 50);
+
+    let urlBase = "../accountScore/";
+    let sid = JSON.parse(sessionStorage.getItem("user")).user.id;
+    let vm = new Vue({
+        el: "#wrapper",
+        data: {
+            showsq:true,
+            applicationurlList:[],
+            permissionList:[],//用户权限
+            src: 'index',
+            active: 0,
+            user: {},
+            isCollapse: false,
+            dialogFormVisible: false,
+            //旧密码
+            OldPassword:"",
+            //新密码
+            NewPassword:"",
+            //确认密码
+            APassword:"",
+            tname:'',
+            //学院名或部门名
+            udNameOption:"",
+            iframeHeight: document.documentElement.clientHeight - 41 - 25 + "px",
+            urlType: Math.random() * 10,
+            dialogVisible:false,
+            userInfo:{
+                OldPassword:"",
+                NewPassword:"",
+                APassword:""
+            },
+            dialogSorceVisible:false,//底分详情界面
+            activeName:'1', //tabs
+            count: 30,
+            // 总科技分
+            total: 0,
+            // 可换酬金的分数
+            exchange: 0,
+            // 普通科技分
+            ordinary: 0,
+            // 借贷科技分
+            loan: 0,
+            // 是否归属研究院
+            academy: 0,
+            // 是否承担研究院管理工作
+            academyCare: 0,
+            // 科技底分
+            baseScore: 0,
+            accountScore: [],
+            loading: false,
+            // 是否还有更多数据可供加载
+            hasMoreData: true,
+            // 分页用的pagebean对象
+            pagebean: {
+                // 默认页号
+                pageno: 1,
+                // 默认页面大小
+                pagesize: 6,
+                // 按排序
+                sortby: '',
+                // 排序方式（升序asc/降序desc）
+                sort: 'asc',
+                // 总共数据条数
+                total: 0,
+                // 总共页数
+                totalpages: 0,
+                // 前一页页号
+                pre: 1,
+                // 后一页页号
+                next: 1
+            },
+            // 该用户职学位信息
+            jobs: [],
+            // 默认选中近三月
+            selectedPeriod: 3,
+            // 标记用户选中当前月、近三月、近半年、近一年，默认选中当前月
+            sel: '1',
+        },
+        computed: {
+            // 将job值为"本科"或者"研究生"放在前面
+            sortedJobs: function() {
+                const educationJobs = this.jobs.filter(job => job === '本科' || job === '研究生');
+                const otherJobs = this.jobs.filter(job => job !== '本科' && job !== '研究生');
+                return educationJobs.concat(otherJobs);
+            }
+        },
+        created() {
+            var user = sessionStorage.getItem("user") ? JSON.parse(sessionStorage.getItem("user")) : {};
+            this.tname=user.tname
+            this.user=user.user
+            this.selectDeptNameByUdid();
+            // 查询该用户的总科技分，可换酬金的科技分，普通科技分等信息
+            this.findBySid();
+            // 查询当该用户的前月科技分账户详情
+            this.findCurrent();
+            // 查询该用户的职位信息
+            this.findJob();
+        },
+        filters:{
+            subString(value){
+                // 如果该用户没有职学位信息，则置为空
+                if(value == '' || value === undefined){
+                    return '';
+                }else{
+                    return value.substring(0,10)
+                }
+            }
+        },
+        methods: {
+            // 截断以...表示还有内容未显示
+            truncateText(lname, pname) {
+                const maxLength = 25; // 设置最大长度
+                const ellipsis = '...'; // 设置省略号
+                let truncatedText = lname + '(' + pname + ')';  //组合需要截断的字符串
+                // 如果字符串长度超过最大长度，则截断并添加省略号
+                if (truncatedText.length > maxLength) {
+                    truncatedText = truncatedText.substring(0, maxLength - ellipsis.length) + ellipsis;
+                }
+                return truncatedText;
+            },
+            Current(){
+                // 将需要信息置为原始样式
+                this.sel = '1';
+                this.hasMoreData = true;
+                this.loading = false;
+                this.accountScore = [];
+                this.pagebean.pageno = 1;
+                this.findCurrent();
+            },
+            // 查询用户职学位信息
+            findJob(){
+                axios.get(urlBase + 'findJob?sysid=' + sid).then(res => {
+                    this.jobs = res.data.obj;
+                });
+            },
+            // 选择当前月或者自定义日期
+            handleTabClick(tab) {
+                if (tab.name === '2') {
+                    this.selectPeriod(3); // 加载并显示近三月的数据
+                } else{
+                    this.Current(); // 加载当前月的数据
+                }
+            },
+            // 滚动加载
+            handleScroll() {
+                if (!this.loading) {
+                    if (this.sel === 3) {
+                        this.findAccount(3);
+                    } else if (this.sel === 6) {
+                        this.findAccount(6);
+                    } else if (this.sel === 12) {
+                        this.findAccount(12);
+                    } else {
+                        this.findCurrent();
+                    }
+                }
+                if(!this.hasMoreData){
+                    this.$message({showClose: true, message: '查询成功!', type: 'success'});
+                }
+            },
+            // 分页查询当前月账户详情
+            findCurrent() {
+                if (!this.hasMoreData) {
+                    return;
+                }
+                this.loading = true;
+                axios.get(urlBase + 'findCurrent?sysid=' + sid + "&pageno=" + this.pagebean.pageno + "&pagesize=" + this.pagebean.pagesize).then((res) => {
+                    this.accountScore = this.accountScore.concat(res.data.obj.dataset);
+                    if (res.data.obj.dataset.length > 0) {
+                        this.pagebean.pageno++;
+                    } else {
+                        // 当没有更多数据可供加载时，将hasMoreData设置为false
+                        this.hasMoreData = false;
+                    }
+                    this.loading = false;
+                });
+            },
+            // 选择自定义日期
+            selectPeriod(period) {
+                // 将需要信息置为原始样式
+                this.selectedPeriod = period;
+                this.sel = period;
+                this.hasMoreData = true;
+                this.loading = false;
+                this.accountScore = [];
+                this.pagebean.pageno = 1;
+                this.findAccount(period);
+            },
+            // 查询近 x 月科技分账户详情
+            findAccount(value){
+                if (!this.hasMoreData) {
+                    return;
+                }
+                this.loading = true;
+                axios.get(urlBase + 'findAccount?sysid=' + sid + '&month=' + value + "&pageno=" + this.pagebean.pageno + "&pagesize=" + this.pagebean.pagesize).then(res => {
+                    this.accountScore = this.accountScore.concat(res.data.obj.dataset);
+                    if (res.data.obj.dataset.length > 0) {
+                        this.pagebean.pageno++;
+                    } else {
+                        // 当没有更多数据可供加载时，将hasMoreData设置为false
+                        this.hasMoreData = false;
+                    }
+                    this.loading = false;
+                });
+            },
+            // 查询用户总科技分，可换酬金的科技分，普通科技分等信息
+            findBySid(){
+                axios.get(urlBase + 'findBySid?sysid=' + sid).then(res => {
+                    if(res.data.code == 1){
+                        if(res.data.obj !== null){
+                            var d = res.data.obj;
+                            this.total = d.total;
+                            this.exchange = d.exchange;
+                            this.ordinary = d.ordinary;
+                            this.academy = d.academy;
+                            this.academyCare = d.academyCare;
+                            this.baseScore = d.baseScore;
+                            this.loan = d.loan;
+                        }
+                    }else{
+                        this.$message({message: "显示分数失败", type: "error"});
+                    }
+                });
+            },
+            //查询用户所在学院或者部门
+            selectDeptNameByUdid() {
+                if (typeof (this.user.udid) !="undefined" && this.user.udid != null){
+                    $.ajax({
+                        url:"../classManage/selectDeptNameByUdid/" + this.user.udid, type: "get",
+                        contentType: "application/json"
+                    }).then(res => {
+                        if (res.code == 1) {
+                            this.udNameOption = res.data;
+                        }
+                    })
+                }
+            },
+            //跳转到修改密码页面
+            toup(){
+                location.href="updatePassword"
+            },
+            handleSelect(key) {
+                this.src = key;
+                window.setInterval("reinitIframe()", 50);
+            },
+            handleCollapse() {
+                this.isCollapse = !this.isCollapse;
+            },
+            logout() {
+                $.get("../logout");
+                this.$message({message: '注销成功,稍后跳转!', type: 'success'});
+                sessionStorage.removeItem("user");
+                location.href = "../login";
+            },getServerTime(){
+                axios.get("../governuser/get/time").then(response => {
+                    if (response.data.code == 0) {
+                        this.$message({message: response.data.msg, type: 'warning'});
+                        setTimeout(()=>{
+                            sessionStorage.removeItem("user");
+                            location.href = "../login";
+                        },3000);
+                    }
+                })
+            },checkPassword(){
+                //检查是否是初始密码
+                let _this = this;
+                axios.get("../api/user/checkPassword").then(res => {
+                    if (res.data.code === "0") {
+                        if(res.data.data == 1){
+                            _this.dialogVisible = true;
+                        }
+                    }
+                })
+            },updatePassword(){
+                //修改密码
+                let _this = this;
+                _this.userInfo.username = JSON.parse(sessionStorage.getItem("user")).username;
+                if (!_this.userInfo.OldPassword) {
+                    this.$message({message: "请输入旧密码再提交!", type: "error"});
+                    return;
+                }
+                if (!_this.userInfo.NewPassword) {
+                    this.$message({message: "请输入新密码再提交!", type: "error"});
+                    return;
+                }
+                if (!_this.userInfo.APassword) {
+                    this.$message({message: "请输入确认密码再提交!", type: "error"});
+                    return;
+                }
+
+                var pat = /^[a-zA-Z][a-zA-Z0-9_!@#$%^&*()-+=,.]{5,17}$/;
+                if (!pat.test(_this.userInfo.NewPassword)) {
+                    this.$message({message: "以字母开头,长度在6~18之间,包含字母、数字和特殊符号!", type: "error"});
+                    return;
+                }
+                if (_this.userInfo.NewPassword.length<8) {
+                    this.$message({message: "新密码长度不能小于8位!", type: "error"});
+                    return;
+                }
+
+                if (_this.userInfo.APassword != _this.userInfo.NewPassword) {
+                    this.$message({message: "两次输入密码不一致!", type: "error"});
+                    return;
+                }
+
+                let params = new URLSearchParams();
+                params.append("username", _this.userInfo.username);
+                params.append("password", _this.userInfo.OldPassword);
+                return axios.post("../api/user/compare", params).then(res => {
+                    if (res.data.code == 0) {
+                        this.$message({message: "旧密码错误，请重新输入!", type: "error"});
+                        return;
+                    }else if (res.data.code == 1){
+                        if (_this.userInfo.APassword == _this.userInfo.NewPassword) {
+                            let params = new URLSearchParams();
+                            params.append("username", _this.userInfo.username);
+                            params.append("password", _this.userInfo.NewPassword);
+                            return axios.post("api/user/updatePassword", params).then(res => {
+                                if (res.data.code == 1) {
+                                    this.$message({message: "修改密码成功，3秒后跳转到登录页面!", type: "success"});
+                                    setTimeout(()=>{
+                                        $.get("../logout");
+                                        sessionStorage.removeItem("user");
+                                        location.href = "../login";
+                                    },3000);
+                                }else{
+                                    this.$message({message: "修改失败请稍后再试!", type: "error"});
+                                }
+                            });
+                        }else{
+                            this.$message({message: "两次输入密码不一致!", type: "error"});
+                            return;
+                        }
+                    }else{
+                        this.$message({message: res.data.msg, type: "error"});
+                        return;
+                    }
+                });
+            },handleUrl(url){
+                return "../"+url + "?urlType="+ this.urlType;
+            },getUserRoles(){
+                let _this = this;
+                axios.get("../api/permission/getUserRoles").then(res => {
+                    if (res.data.code == 1) {
+                        _this.permissionList = [];
+                        for (let i = 0; i <res.data.data.length ; i++) {
+                            _this.permissionList.push(res.data.data[i]);
+                        }
+                    }
+                })
+            },handleMessage(item){
+                this.handleSelect(item.data.url);
+            }
+        }, mounted: function () {
+            this.getServerTime();
+            this.getUserRoles();
+        }
+    });
+
+    window.addEventListener('message', vm.handleMessage);
+
+    /**
+     * 获取url参数
+     * @param name
+     * @returns {string|null}
+     */
+    function getUrlParamValue(name) {
+        if (name == null || name === 'undefined') {
+            return '';
+        }
+        let searchStr = decodeURI(location.search);
+        let infoIndex = searchStr.indexOf(name + "=");
+        if (infoIndex === -1) {
+            return null;
+        }
+        let searchInfo = searchStr.substring(infoIndex + name.length + 1);
+        let tagIndex = searchInfo.indexOf("&");
+        if (tagIndex !== -1) {
+            searchInfo = searchInfo.substring(0, tagIndex);
+        }
+        return searchInfo;
+    }
+</script>
+</body>
+</html>

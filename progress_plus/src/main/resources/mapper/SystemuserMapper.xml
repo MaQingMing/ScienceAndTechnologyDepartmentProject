@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yc.mapper.SystemuserMapper">
+    <select id="selectByPage" resultType="com.yc.entity.Systemuser">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+
+    <select id="queryIdByusername" resultType="string">
+        select GROUP_CONCAT(id ORDER BY id) FROM systemuser WHERE username in
+        <foreach collection="usernames" item="username" open="(" separator="," close=")">
+            #{username}
+        </foreach>
+    </select>
+
+    <!-- 根据姓名或者工号查询用户 -->
+    <select id="queryUserBySearch" resultType="com.yc.entity.Systemuser">
+        select id, username, nickname from systemuser
+        <where>
+            `role` != '[1]'
+            <if test="username != null and username != 'null' and username != ''">
+                and username like concat('%', #{username}, '%')
+            </if>
+            <if test="nickname != null and nickname != 'null' and nickname != ''">
+                and nickname like concat('%', #{nickname}, '%')
+            </if>
+        </where>
+    </select>
+
+    <update id="updateUserScore">
+        insert ignore into systemuser (id, score_balance,non_score_balance, update_time) values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.sysid},
+            #{item.cash},
+            #{item.notcash},
+            now())
+        </foreach>
+        on DUPLICATE key update
+        id = values(id), score_balance = values(score_balance),
+        non_score_balance = values(non_score_balance), update_time = values(update_time)
+    </update>
+
+    <update id="updateAllUserScore">
+        update systemuser
+        set score_balance     = 0,
+            non_score_balance = 0
+    </update>
+
+    <select id="findByName" resultType="com.yc.vo.SystemVo">
+        select s.id,
+               username,
+               nickname,
+               phone,
+               s.tid                        tid,
+               base_score,
+               job,
+               (SELECT GROUP_CONCAT(t_job.context)
+                FROM systemuser
+                         JOIN t_job ON FIND_IN_SET(t_job.id, REPLACE(REPLACE(systemuser.job, '[', ''), ']', ''))
+                WHERE systemuser.id = s.id) jobs,
+               (SELECT GROUP_CONCAT(t_role.name)
+                FROM systemuser
+                         JOIN t_role ON FIND_IN_SET(t_role.id, REPLACE(REPLACE(systemuser.role, '[', ''), ']', ''))
+                WHERE systemuser.id = s.id) rolename,
+               l.tname                      deptname,
+               academy,
+               academy_care
+        from t_role r
+                 RIGHT JOIN systemuser s on r.id = CAST(REPLACE(SUBSTRING_INDEX(s.role, ',', 1), '[', '') AS UNSIGNED)
+                 LEFT JOIN labeldept l on l.tid = s.tid
+        where username like CONCAT('%', #{username}, '%')
+           or nickname like CONCAT('%', #{nickname}, '%')
+        order by id desc
+        limit #{start},#{pagesize}
+    </select>
+
+    <select id="findAllSystem" resultType="com.yc.vo.SystemVo">
+        select s.id,
+               username,
+               nickname,
+               phone,
+               s.tid                        tid,
+               base_score,
+               job,
+               (SELECT GROUP_CONCAT(t_job.context)
+                FROM systemuser
+                         JOIN t_job ON FIND_IN_SET(t_job.id, REPLACE(REPLACE(systemuser.job, '[', ''), ']', ''))
+                WHERE systemuser.id = s.id) jobs,
+               (SELECT GROUP_CONCAT(t_role.name)
+                FROM systemuser
+                         JOIN t_role ON FIND_IN_SET(t_role.id, REPLACE(REPLACE(systemuser.role, '[', ''), ']', ''))
+                WHERE systemuser.id = s.id) rolename,
+               l.tname                      deptname,
+               academy,
+               academy_care
+        from t_role r
+                 RIGHT JOIN systemuser s on r.id = CAST(REPLACE(SUBSTRING_INDEX(s.role, ',', 1), '[', '') AS UNSIGNED)
+                 LEFT JOIN labeldept l on l.tid = s.tid
+        order by id desc
+        limit #{start},#{pagesize}
+    </select>
+
+    <insert id="addSystem">
+        insert into systemuser(username, password, nickname, phone, role, tid, job, base_score, create_by, create_time,
+                               update_by, update_time)
+        values (#{username}, #{password}, #{nickname}, #{phone}, '[3]', #{tid}, #{job}, #{baseScore}, #{createBy},
+                now(), #{updateBy}, now())
+    </insert>
+
+    <update id="updateDept">
+        update systemuser
+        set tid         = #{tid},
+            update_by   = #{updateBy},
+            update_time = NOW()
+        where username = #{username}
+    </update>
+
+    <update id="updateInfo">
+        update systemuser
+        set nickname    = #{nickname},
+            phone       = #{phone},
+            base_score  = #{baseScore},
+            job         = #{job},
+            update_by   = #{updateBy},
+            update_time = NOW()
+        where username = #{username}
+    </update>
+
+    <insert id="insertAll">
+        insert into systemuser(username,password,nickname,phone,role,tid,job,base_score,create_by,create_time,update_by,update_time)
+            values
+            <foreach collection="list" item="item" index="index" separator=",">
+                (#{item.username},#{item.password},#{item.nickname},#{item.phone},'[3]',
+                (select tid from labeldept where tname=#{item.tname}),
+                (select id from t_job where context=#{item.context}),
+                #{item.baseScore},#{item.createBy},now(),#{item.updateBy},now())
+            </foreach>
+    </insert>
+</mapper>

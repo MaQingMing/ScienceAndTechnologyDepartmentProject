@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.BookApplyInfoMapper">
+    <select id="selectByPage" resultType="com.yc.apply.entity.BookApplyInfo">
+        select *
+        from book_apply_info ${ew.customSqlSegment}
+    </select>
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--著作主键，著作名称，出版单位，著作类型，字数，著作计分，作者排序，是否可以换钱-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.BookHisPage">
+        SELECT
+        distinct bai.baiid,
+        bai.`name`,
+        bai.press_name,
+        bai.academic_type,
+        bai.words_num,
+        bai.order,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        (SELECT GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`)) FROM
+        score_apply_info sai WHERE ga.gaid = sai.gaid ) scoreInfo,
+        (select tname from labeldept where tid = (select tid from systemuser where id = ga.sid)) user_dept,
+        (SELECT CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::')
+        FROM score_apply_info sai WHERE ga.gaid = sai.gaid ) scoreInfo,
+        ( SELECT cash FROM (SELECT cash, max( score ) FROM
+        book_standard bs WHERE FIND_IN_SET( bs.bsid, ga.childid )) s) cash,
+        ga.date time,
+        ga.sid,
+        ga.gaid,
+        ga.according,
+        ga.remarks,
+        (select lname from tech_results_level where leid = (select leid from invent_standard where iid = ga.childid))
+        level,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        ( SELECT s.nickname FROM systemuser s WHERE s.id = ga.sid ) username,
+        CASE
+        WHEN ga.team = 1 THEN
+        '是'
+        WHEN ga.team = 0 THEN
+        '否' ELSE NULL
+        END team,
+        CASE
+        WHEN ga.recordid IS NULL then NULL ELSE (
+        SELECT
+        r.`name`
+        FROM
+        record r
+        WHERE
+        ga.recordid = r.id
+        AND r.`status` = 1
+        AND r.team_id = ga.sid
+        )
+        END rname,
+        ga.recordid
+        FROM
+        book_apply_info bai,
+        gain_apply ga,
+        record r
+        WHERE
+        bai.gaid = ga.gaid
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct ga.gaid)
+        FROM
+        book_apply_info bai,
+        gain_apply ga,
+        record r
+        WHERE
+        bai.gaid = ga.gaid
+        AND ga.trtid = 5
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != null and status != ""'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='dept!="" and dept != "" and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query =="") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( bs.posit )
+            FROM
+            book_standard bs
+            WHERE
+            FIND_IN_SET( bs.bsid, ga.childid )))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != null and identifier == "1" and isDept == "0"'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (bai.`name` LIKE concat( '%', #{commonLike}, '%' )
+            OR bai.press_name LIKE concat( '%', #{commonLike}, '%' )
+            OR bai.academic_type LIKE concat(
+            '%',
+            #{commonLike},
+            '%'))
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( bs.leid )
+            FROM
+            book_standard bs
+            WHERE
+            FIND_IN_SET( bs.bsid, ga.childid )))))
+        </if>
+        <if test='identifier == "0"'>
+            AND #{userId} = ga.sid
+        </if>
+    </sql>
+
+    <!-- 添加科技成果 -->
+    <insert id="addAchievement">
+        insert into achievement_standard (leid, context, score, remarks, status, posit, trid)
+        values (#{leid}, #{context}, #{score}, #{remarks}, #{status}, #{posit}, #{trid})
+    </insert>
+    <insert id="insertBatch">
+        INSERT INTO book_apply_info ( `name`, press_name, academic_type, `order`, words_num, gaid, create_by,
+        create_time)
+        VALUES
+        <foreach item="item" index="index" collection="list"
+                 separator=",">
+            (#{item.name},#{item.pressName},#{item.academicType},
+            #{item.order},#{item.wordsNum},#{item.gaid},
+            #{user},now())
+        </foreach>
+    </insert>
+
+    <!-- 查询科技成果 -->
+    <select id="selectAchievement" resultType="com.yc.vo.EditProject">
+        select a.asid id, l.lname, l.leid, a.score, a.remarks, a.posit, a.status
+        from achievement_standard a,
+             tech_results_level l
+        where a.leid = l.leid
+    </select>
+
+    <!-- 修改科技成果 -->
+    <update id="updateAchievement">
+        update achievement_standard
+        set leid    = #{leid},
+            context = #{context},
+            score   = #{score},
+            remarks = #{remarks},
+            status  = #{status},
+            posit   = #{posit},
+            trid    = #{trid}
+        where asid = #{id}
+    </update>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid}
+          and sysid = #{sid}
+    </update>
+</mapper>

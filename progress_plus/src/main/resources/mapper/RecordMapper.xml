@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.mapper.RecordMapper">
+    <select id="selectByPage" resultType="com.yc.entity.Record">
+        select *
+        from record ${ew.customSqlSegment}
+    </select>
+    <select id="queryDetail" resultType="com.yc.entity.Record">
+        select *
+        from record
+        where id = #{id}
+    </select>
+
+
+    <select id="queryRecordByUsername" resultType="com.yc.vo.RecordVo">
+        select * from record
+        <where>
+            team_id like concat('%',#{username},'%')
+            <if test=" name != null and name != '' ">
+                and name like concat ('%',#{name},'%')
+            </if>
+            <if test="radio != null and radio != ''">
+                and status = #{radio}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="queryRecordByGovernuser" resultType="com.yc.vo.RecordVo">
+        SELECT DISTINCT
+        r.id,r.name,r.date,r.status,r.rejection,r.team_id,r.standard_type,r.standard_id,tst.trname,tsl.lname,
+        (select GROUP_CONCAT(path) from prove_file where useid = r.id) as file_path,
+        (select GROUP_CONCAT(file_name) from prove_file where useid = r.id) as file_name,
+        (select GROUP_CONCAT(file_type) from prove_file where useid = r.id) as file_type
+        FROM record r
+        JOIN systemuser su ON FIND_IN_SET(su.id, r.team_id) > 0
+        INNER JOIN tech_results_type tst ON tst.trid = r.standard_id
+        INNER JOIN tech_results_level tsl ON r.standard_type = tsl.leid
+        <where>
+            r.status = #{radio}
+            <if test="username != null and username != ''">
+                and su.nickname like CONCAT ('%',#{username},'%')
+                or r.name like CONCAT ('%',#{username},'%')
+            </if>
+        </where>
+        GROUP BY r.id
+        ORDER BY r.create_time DESC
+        limit #{currentPage},#{currentSize}
+    </select>
+    <select id="queryRecordtotal" resultType="int">
+        select count(*) as total from
+        (SELECT DISTINCT r.id
+        FROM record r
+        JOIN systemuser su ON FIND_IN_SET(su.id, r.team_id) > 0
+        INNER JOIN tech_results_type tst ON tst.trid = r.standard_id
+        INNER JOIN tech_results_level tsl ON r.standard_type = tsl.leid
+        <where>
+            r.status = #{radio}
+            <if test="username != null and username != ''">
+                and su.nickname like CONCAT ('%',#{username},'%')
+                or r.name like CONCAT ('%',#{username},'%')
+            </if>
+        </where>
+        ) AS subquery
+    </select>
+    <resultMap id="queryInfo" type="map">
+        <result column="nickname" property="nickname"></result>
+        <result column="username" property="username"></result>
+    </resultMap>
+    <select id="queryNameByUsername" resultMap="queryInfo">
+        select nickname,username from systemuser where id in
+        <foreach collection="usernames" item="username" open="(" close=")" separator=",">
+            #{username}
+        </foreach>
+    </select>
+
+    <update id="UpdateRecord">
+        update record set status = 1
+        where
+        <foreach collection="ids" item="id" separator="or">
+            id = #{id}
+        </foreach>
+    </update>
+
+    <resultMap id="kinds" type="map">
+        <result property="trid" column="trid"></result>
+        <result property="trname" column="trname"></result>
+    </resultMap>
+    <select id="queryKind" resultMap="kinds">
+        select trid, trname
+        from tech_results_type
+        where status = 1
+        GROUP BY trid
+    </select>
+    <resultMap id="kindsLname" type="map">
+        <result property="leid" column="leid"></result>
+        <result property="lname" column="lname"></result>
+    </resultMap>
+    <select id="queryLnameByTrid" resultMap="kindsLname">
+        select leid, lname
+        from tech_results_level
+        where trid = #{trid} and status = 1
+    </select>
+
+    <resultMap id="nicknames" type="map">
+        <result property="id" column="id"></result>
+        <result property="nickname" column="nickname"></result>
+        <result property="username" column="username"></result>
+    </resultMap>
+
+    <select id="queryNicknameById" resultMap="nicknames">
+        select id,nickname,username from systemuser where
+        id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="queryRecordByuser" resultType="com.yc.vo.RecordVo">
+        select DISTINCT
+        r.id,r.name,r.date,r.status,r.rejection,r.team_id,r.standard_type,r.standard_id,tst.trname,tsl.lname,
+        (select GROUP_CONCAT(path) from prove_file where useid = r.id) as file_path,
+        (select GROUP_CONCAT(file_name) from prove_file where useid = r.id) as file_name,
+        (select GROUP_CONCAT(file_type) from prove_file where useid = r.id) as file_type,
+        COUNT(r.id) OVER() AS total from record r
+        INNER JOIN tech_results_type tst ON tst.trid = r.standard_id
+        INNER JOIN tech_results_level tsl ON r.standard_type = tsl.leid
+        <where>
+            FIND_IN_SET(#{id},r.team_id)
+            AND r.standard_type = tsl.leid
+            and r.status = #{radio}
+            <if test="name != null and name !=''">
+                and r.`name` LIKE CONCAT ('%',#{name},'%')
+            </if>
+        </where>
+        GROUP BY r.id
+        ORDER by r.create_time desc
+        limit #{currentPage},#{currentSize}
+    </select>
+    <resultMap id="totals" type="map">
+        <result property="status" column="status"></result>
+        <result property="total" column="total"></result>
+    </resultMap>
+    <select id="queryTotalBygoveruname" resultMap="totals">
+        select r.status,COUNT(DISTINCT r.id) as total
+        from record r INNER JOIN systemuser su
+        ON FIND_IN_SET(su.id,r.team_id) >0
+        <where>
+            <if test="username !=null and username !=''">
+                and r.NAME LIKE CONCAT ('%',#{username},'%') OR su.nickname LIKE CONCAT ('%',#{username},'%')
+            </if>
+        </where>
+        GROUP BY r.`status` ORDER BY status
+    </select>
+    <select id="queryTotalByusername" resultMap="totals">
+        select r.status,COUNT(DISTINCT r.id) as total from record r INNER JOIN systemuser su
+        ON FIND_IN_SET(#{id},r.team_id) >0
+        <where>
+            <if test="name !=null and name != ''">
+                and r.name like conca ('%',#{name},'%')
+            </if>
+        </where>
+        GROUP BY r.`status` ORDER BY status
+    </select>
+
+    <!-- 通过项目类型id查询备案 -->
+    <select id="selectRecordByType" resultType="com.yc.vo.RecordVo">
+        select id, `name`, `date`
+        from record
+        where standard_id = #{typeId}
+          and consume = 0
+          and status = 1
+          and SUBSTRING_INDEX(team_id, ',', 1) = #{masterId}
+    </select>
+
+    <!-- 申请成功后修改备案已被使用 -->
+    <update id="updateConsume">
+        update record set consume = #{gaid} where id = #{recordid};
+    </update>
+
+    <select id="findRecord" resultType="com.yc.entity.Record">
+        SELECT id, `name`, consume, standard_type, standard_id
+        FROM record
+        WHERE consume = 0 AND FIND_IN_SET(standard_type, #{standardType}) > 0 AND standard_id = #{standardId} AND create_by = #{createBy}
+    </select>
+</mapper>

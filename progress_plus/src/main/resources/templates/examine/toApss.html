@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<body>
+<div id="apss-App" v-cloak>
+    <h1 style="text-align: center;">{{title}}-科技成果项目数据透视表</h1>
+
+    <div style="width: 12%;display: inline-block;margin-right: 5px;" v-for="item in finalResult">
+        <el-table :data="item" :height="publicHeight"   :max-height="publicHeight"  border style="width: 100%;" show-summary>
+            <el-table-column prop="nickname" label="姓名"></el-table-column>
+            <el-table-column prop="data" :label="item[0].field_name"></el-table-column>
+        </el-table>
+    </div>
+
+</div>
+<script type="text/javascript">
+    let apssApp = new Vue({
+        el: "#apss-App",
+        data: {
+            publicHeight: document.documentElement.clientHeight - 85,
+            tableData:[],//表格数据
+            tableType:[{title:"横向"},{title:"纵向"},{title:"成果奖"},{title:"论文"},
+                {title:"学术专著"},{title:"专利"},{title:"平台"},{title:"荣誉"}],
+            title:"", //标题
+            finalResult:[]
+        },
+        methods: {
+            queryExamineTypeTotal(){
+                var eid = localStorage.getItem("eids");
+                this.title = localStorage.getItem("title");
+                var params = new URLSearchParams();
+                params.append("eid",eid)
+                axios.post("../e/queryExamineTypeTotal",params).then(res=>{
+                    // 将数据按照 field_name 进行分组
+                    const groupedData = res.data.data.reduce((acc, item) => {
+                        if (!acc[item.field_name]) {
+                            acc[item.field_name] = [];
+                        }
+                        acc[item.field_name].push(item);
+                        return acc;
+                    }, {});
+                    this.finalResult = Object.values(groupedData);
+                })
+            }
+        },
+        created(){
+            this.queryExamineTypeTotal();
+        }
+    });
+    //$("title").text("2023年湖南工学院专业技术人员科技成果考核计划");
+</script>
+</body>
+</html>

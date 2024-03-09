@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div th:fragment="copyaps">
+    <div class="cardtextstyle2" style="color: #67C23A;margin-top: -10px" v-if="scope.row.status=='认可'"><b>{{ scope.row.status }}</b></div>
+    <div class="cardtextstyle2" style="color: #F56C6C;margin-top: -10px" v-if="scope.row.status=='不认可'"><b>{{ scope.row.status }}</b></div>
+    <div class="cardtextstyle2" style="color: #409EFF;margin-top: -10px" v-if="scope.row.status=='初审'"><b>{{ scope.row.status }}</b></div>
+    <div class="cardtextstyle2" style="color: #E6A23C;margin-top: -10px" v-if="scope.row.status=='复审'"><b>{{ scope.row.status }}</b></div>
+</div>
+</body>
+</html>

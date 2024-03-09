@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.DirectionStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.DirectionStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM direction_standard ds,
+             tech_results_level trl
+        WHERE ds.leid = trl.leid
+    </select>
+
+    <!-- 添加纵向项目 -->
+    <insert id="addDirection">
+        insert into direction_standard (leid, declare_score, found_score, cash, context, remarks, status, posit, trid,
+                                        create_by, create_time, update_by, update_time)
+        values (#{leid}, #{declareScore}, #{foundScore}, #{cash}, #{context}, #{remarks}, #{status}, #{posit}, #{trid},
+                #{createBy}, now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询纵向项目 -->
+    <select id="selectDirection" resultType="com.yc.vo.EditProject">
+        select d.dsid id, l.lname, l.leid, d.context, d.declare_score declareScore, d.found_score foundScore, d.cash,
+        d.remarks, d.posit, d.status, d.trid
+        from direction_standard d, tech_results_level l
+        where d.leid = l.leid
+        <if test="context != null and context != 'null' and context != ''">
+            and d.context like concat('%', #{context}, '%')
+        </if>
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and d.leid = #{leid}
+        </if>
+    </select>
+
+    <!-- 修改纵向项目 -->
+    <update id="updateDirection">
+        update direction_standard
+        set leid          = #{leid},
+            declare_score = #{declareScore},
+            found_score   = #{foundScore},
+            context       = #{context},
+            cash          = #{cash},
+            remarks       = #{remarks},
+            status        = #{status},
+            posit         = #{posit},
+            trid          = #{trid},
+            update_by     = #{updateBy},
+            update_time   = now()
+        where dsid = #{id}
+    </update>
+
+    <!-- 查询纵向项目级别对应的分数 -->
+    <select id="selectLevel" resultType="com.yc.vo.EditProject">
+        select d.dsid          id,
+               d.context,
+               l.lname,
+               l.leid,
+               d.declare_score declareScore,
+               d.found_score   foundScore,
+               l.trid,
+               d.cash
+        from direction_standard d,
+             tech_results_level l
+        where d.leid = l.leid
+    </select>
+    <select id="queryContexts" resultType="java.lang.String">
+        select context
+        from direction_standard
+    </select>
+</mapper>

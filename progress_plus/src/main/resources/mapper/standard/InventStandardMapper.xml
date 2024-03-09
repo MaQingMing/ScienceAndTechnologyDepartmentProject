@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.InventStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.InventStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryTypeId" resultType="java.lang.Integer">
+        select iss.iid from invent_standard iss where
+        <if test="common == '科技成果分数'">
+            iss.score = #{value}
+        </if>
+        <if test="common == '类别/级别'">
+            (select lname from tech_results_level where leid = iss.leid) = #{value}
+        </if>
+        <if test="common == '审核部门'">
+            iss.posit = #{value}
+        </if>
+    </select>
+    <select id="queryInventTypes" resultType="java.lang.String">
+        select distinct type
+        from invent_apply_info
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM invent_standard iss,
+             tech_results_level trl
+        WHERE iss.leid = trl.leid
+    </select>
+
+    <!-- 添加发明专利项目 -->
+    <insert id="addInvent">
+        insert into invent_standard (leid, stage, score, cash, remarks, status, posit, trid, create_by, create_time,
+                                     update_by, update_time)
+        values (#{leid}, #{stage}, #{score}, #{cash}, #{remarks}, #{status}, #{posit}, #{trid}, #{createBy}, now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询发明专利 -->
+    <select id="selectInvent" resultType="com.yc.vo.EditProject">
+        select i.iid id, i.stage, l.lname, l.leid, i.score, i.cash, i.remarks, i.posit, i.status, i.trid
+        from invent_standard i, tech_results_level l
+        where i.leid = l.leid
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and i.leid = #{leid}
+        </if>
+    </select>
+    <select id="selectLevel" resultType="com.yc.vo.EditProject">
+        select i.iid id, ll.tname,i.cash, l.lname, l.leid, i.score, l.trid, i.stage
+        from invent_standard i,
+             tech_results_level l,
+             labeldept ll
+        where i.leid = l.leid
+          and i.posit = ll.tid
+    </select>
+
+    <!-- 修改发明专利项目 -->
+    <update id="updateInvent">
+        update invent_standard
+        set leid        = #{leid},
+            stage       = #{stage},
+            score       = #{score},
+            cash        = #{cash},
+            remarks     = #{remarks},
+            status      = #{status},
+            posit       = #{posit},
+            trid        = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where iid = #{id}
+    </update>
+</mapper>

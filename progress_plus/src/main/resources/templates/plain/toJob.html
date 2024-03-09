@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<body>
+<div id="jobApp">
+    <el-row>
+        <el-col :span="5">
+            <el-input v-model="searchInput" size="small" placeholder="请输入职位/学位"></el-input>
+        </el-col>
+        <el-col :span="2" style="text-align: center;">
+            <el-button size="small" type="primary">搜 索</el-button>
+        </el-col>
+        <el-col :span="3">
+            <el-button size="small" type="primary" @click="dialogVisibleJob =true,dialogVisibleJobTitle ='添加职位或学位信息'" >新增职位 | 学位</el-button>
+        </el-col>
+    </el-row>
+
+    <div style="margin-top: -15px;">
+        <el-divider></el-divider>
+    </div>
+    <div style="width: 100%;">
+        <el-table :data="tableData" border style="width: 100%">
+            <el-table-column prop="leid" label="序号" width="80"></el-table-column>
+            <el-table-column prop="date" label="职位或学位" ></el-table-column>
+            <el-table-column prop="name" label="科技分" ></el-table-column>
+            <el-table-column prop="address" label="人数"></el-table-column>
+            <el-table-column label="操作" width="150">
+                <template slot-scope="scope">
+                    <el-button type="primary" size="mini" icon="el-icon-edit" >编 辑</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <div style="background-color: white">
+            <el-pagination
+                    @size-change=""
+                    @current-change=""
+                    :current-page="pageNum"
+                    :page-sizes="[5, 10, 20, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total">
+            </el-pagination>
+        </div>
+    </div>
+
+    <el-dialog :title="dialogVisibleJobTitle" :close-on-click-modal="false" :visible.sync="dialogVisibleJob" width="45%">
+        <div style="width: 100%;height:150px;">
+            <el-row>
+                <el-col :span="5"><span style="color: red;">*</span>职位或学位名称</el-col>
+                <el-col :span="18" style="text-align: center;">
+                    <el-input style="width: 300px;"  v-model="jobObject.context" placeholder="请输入职位或学位名称"></el-input>
+                </el-col>
+            </el-row>
+            <el-row style="margin-top: 30px;margin-bottom: 20px;">
+                <el-col :span="5"><span style="color: red;">*</span>科技分</el-col>
+                <el-col :span="18" style="text-align: center;">
+                    <el-input style="width: 300px;" v-model="jobObject.score" placeholder="请输入科技分(数字)"></el-input>
+                </el-col>
+            </el-row>
+        </div>
+        <span style="margin-left: 70%;">
+            <el-button size="small" type="primary" @click="dialogVisible = false">确 定</el-button>
+            <el-button size="small" @click="dialogVisibleJob = false">取 消</el-button>
+        </span>
+    </el-dialog>
+</div>
+<script type="text/javascript">
+    let jobApp= new Vue({
+        el: "#jobApp",
+        data: {
+            dialogVisibleJobTitle:"添加职位或学位信息",
+            dialogVisibleJob:false,//添加框
+            searchInput:'',//搜索框
+            tableData:{},
+            pageNum: 1,
+            pageSize: 10,
+            total: 0,
+            jobObject:{context:'',score:''}
+        },
+        mounted() {
+
+        },
+        methods: {
+
+        }
+    })
+</script>
+</body>
+</html>

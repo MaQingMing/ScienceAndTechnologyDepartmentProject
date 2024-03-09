@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div th:fragment="copypaper">
+    <el-row>
+        <!--申请时间-->
+        <el-col :span="6">
+            <div class="cardtextstyle" style="float: left;margin-left: 20px">申请时间：
+                <span>{{ scope.row.time }}</span>
+            </div>
+        </el-col>
+        <el-col :span="2">
+            <div class="cardtextstyle">论文名称：</div>
+        </el-col>
+        <el-col :span="13" class="paper-name">
+            <div class="cardtextstyle" style="width: 100%;text-align: left;">
+                <el-tooltip class="item" effect="dark" :content=" scope.row.name " placement="top">
+                    <span style="color: #1C86EE">{{ scope.row.name | subString('paper-name') }}</span>
+                </el-tooltip>
+            </div>
+        </el-col>
+        <el-col :span="3">
+            <div class="cardtextstyle" style="">科技分</div>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="3">
+            <div class="bottomcard" style="margin-bottom: 5px;" th:insert="~{common/science/science_apply_status :: copyaps}"></div>
+        </el-col>
+        <el-col :span="18" class="surround">
+            <el-row class="bottomborder">
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">作者姓名：
+                        <span>{{ scope.row.username }}</span>
+                    </div>
+                </el-col>
+                <el-col :span="16" class="paper-level">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">论文级别：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.level " placement="top">
+                            <span >{{ scope.row.level | subString('paper-level') }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">作者排序：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.order " placement="top">
+                            <span>{{ scope.row.order }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">刊物名：
+                        <span>{{ scope.row.periodicalName}}</span>
+                    </div>
+                </el-col>
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">期号：
+                        <span>{{scope.row.cnnum}}</span>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">研究院：
+                        <span>{{ scope.row.institute }}</span>
+                    </div>
+                </el-col>
+                <el-col :span="16" class="paper-according">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;margin-top: 6px">计算依据：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.according " placement="top">
+                            <span>{{ scope.row.according  | subString('paper-according')}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="separate">
+                <el-col :span="8" v-if="scope.row.fileNum>0">
+                    <div class="cardtextstyle" style="float: left;margin-top: 10px">附件信息：
+                        <span @click="selectfile(scope.row.gaid)" style="color: #1C86EE">查看附件</span>
+                    </div>
+                </el-col>
+                <el-col :span="16" class="paper-remarks">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;margin-top: 6px">备注：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.remarks " placement="top">
+                            <span>{{ scope.row.remarks  | subString('paper-remarks')}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-col>
+        <el-col :span="3" >
+            <span v-if="scope.row.scoreInfo">
+                <div v-if="scope.row.scoreInfo[0].can_score>0">
+                    <a>可换酬金</a>
+                    <div class="cardtextstyle2" style="color: #67C23A;margin-top: -10px;line-height: 150px;height: 150px">
+                        <b style="font-size: 18px">{{ scope.row.scoreInfo[0].can_score }}</b>
+                    </div>
+                </div>
+                <div v-if="scope.row.scoreInfo[0].cannot_score>0">
+                    <a>不可换酬金</a>
+                    <div class="cardtextstyle2" style="color: #67C23A;margin-top: -10px;line-height: 150px;height: 150px">
+                        <b style="font-size: 18px">{{ scope.row.scoreInfo[0].cannot_score }}</b>
+                    </div>
+                </div>
+                <div class="cardtextstyle2" style="color: #F56C6C;margin-top: -10px;"
+                     v-if="scope.row.scoreInfo[0].can_score==0&&scope.row.scoreInfo[0].cannot_score==0"><b>0分</b></div>
+            </span>
+            <span v-else>
+                <div class="cardtextstyle2" style="color: #F56C6C;margin-top: -10px;" ><b>0分</b></div>
+            </span>
+        </el-col>
+    </el-row>
+</div>
+</body>
+</html>

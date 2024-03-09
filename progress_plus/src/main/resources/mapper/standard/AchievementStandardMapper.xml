@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.AchievementStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.AchievementStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM achievement_standard ass,
+             tech_results_level trl
+        WHERE ass.leid = trl.leid
+    </select>
+
+    <!-- 添加科技成果 -->
+    <insert id="addAchievement">
+        insert into achievement_standard (leid, context, score, cash, remarks, status, posit, trid, create_by,
+                                          create_time, update_by, update_time)
+        values (#{leid}, #{context}, #{score}, #{cash}, #{remarks}, #{status}, #{posit}, #{trid}, #{createBy}, now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询科技成果 -->
+    <select id="selectAchievement" resultType="com.yc.vo.EditProject">
+        select a.asid id, l.lname, l.leid, a.context, a.score, a.cash, a.remarks, a.posit, a.status, a.trid from
+        achievement_standard a, tech_results_level l
+        where a.leid = l.leid
+        <if test="context != null and context != 'null' and context != ''">
+            and a.context like concat('%', #{context}, '%')
+        </if>
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and a.leid = #{leid}
+        </if>
+        <if test="status == 1 ">
+            and  a.status = 1
+        </if>
+    </select>
+    <select id="queryContexts" resultType="java.lang.String">
+        select context
+        from achievement_standard
+    </select>
+
+    <!-- 修改科技成果 -->
+    <update id="updateAchievement">
+        update achievement_standard
+        set leid        = #{leid},
+            context     = #{context},
+            score       = #{score},
+            cash        = #{cash},
+            remarks     = #{remarks},
+            status      = #{status},
+            posit       = #{posit},
+            trid        = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where asid = #{id}
+    </update>
+</mapper>

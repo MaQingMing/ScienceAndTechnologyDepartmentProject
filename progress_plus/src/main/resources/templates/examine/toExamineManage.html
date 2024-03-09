@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<style type="text/css">
+    .add_em .el-row{margin-top: 20px;margin-bottom: 20px;}
+    .el-dialog{width: 80%;margin-top: 5vh !important}
+    .countdown-timer{float: right;margin-top: -22px;font-size: 17px;font-weight: 600;}
+    .timer{display: inline-block}
+    #days,#hours,#minutes,#seconds{color: #E6A23C;}
+    .operate-button button{margin-bottom: 10px;margin-left: 10px;}
+</style>
+<body>
+<div id="em-app" v-cloak style="width: 99%;height: 100%;">
+    <div>
+        <el-row :gutter="20">
+            <el-col :span="3" >
+                <el-button size="small" style="margin-left: 15px;" type="primary" @click="dialogVisibleEm = true">新增年度考核计划</el-button>
+            </el-col>
+            <el-col :span="2"><el-button size="small" icon="el-icon-refresh" @click="queryAgain"></el-button></el-col>
+        </el-row>
+    </div>
+    <div class="countdown-timer" >
+        <span v-if="timerStatus == 1" >距任务开始:</span>
+        <span v-if="timerStatus == 2" >距任务结束:</span>
+        <span v-if="timerStatus == 3" >距任务公示:</span>
+        <span v-if="timerStatus ==1 || timerStatus == 2 || timerStatus == 3">
+            <div class="timer">
+                <span id="days">00</span><span class="label" > 天</span>
+            </div>
+            <div class="timer">
+                <span id="hours" >00</span><span class="label" > 小时 </span>
+            </div>
+            <div class="timer">
+                <span id="minutes">00</span><span class="label" > 分钟 </span>
+            </div>
+            <div class="timer">
+                <span id="seconds">00</span><span class="label"> 秒</span>
+            </div>
+        </span>
+    </div>
+
+    <el-dialog title="新增年度考核计划" :visible.sync="dialogVisibleEm" @open="handleOpen" :close-on-click-modal="false" :close-on-press-escape="false" width="60%" top="4%" >
+        <div style="width: 100%;">
+            <div class="add_em">
+                <el-row>
+                    <el-col :span="3"><span style="color: red;">*</span>考核标题 :</el-col>
+                    <el-col :span="18"><el-input size="small" v-model="examineeInfo.title" placeholder="请输入考核标题"></el-input></el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="3"><span style="color: red;">*</span>考核年度 :</el-col>
+                    <el-col :span="18">
+                        <el-date-picker format="yyyy-MM-dd" value-format="yyyy-MM-dd" size="small" v-model="examineeInfo.startDate"
+                                        type="date" placeholder="开始日期"></el-date-picker>&nbsp;&nbsp;到&nbsp;&nbsp;
+                        <el-date-picker format="yyyy-MM-dd" value-format="yyyy-MM-dd" size="small"  v-model="examineeInfo.endDate"
+                                        type="date" placeholder="结束日期"></el-date-picker>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="3">流程设置:</el-col>
+                    <el-col :span="18">
+                        <el-link type="primary" @click="dialogVisibleProcess = true">设置考核流程时间信息</el-link>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="24" style="color: #909399;">流程设置(设置每个节点完成时间, 到了设置的时间, 系统自动处理, 没有设置流程时间需要手动处理)</el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="3"> 其他设置 :</el-col>
+                    <el-col :span="8">
+                        <el-checkbox v-model="examineeInfo.advance">是否能提前抵扣</el-checkbox>
+                    </el-col>
+                    <el-col :span="8" :offset="2">
+                        <el-checkbox v-model="examineeInfo.confirm" disabled="disabled">考核期间不能申报</el-checkbox>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="24" style="color: #909399;">温馨提示: 考核期间不能进行科技成果申报,防止出现统计科技分错统,漏统问题</el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="3"><span style="color: red;">*</span>考核人数 :</el-col>
+                    <el-col :span="18">
+                        <h3 style="display: inline-block;margin-right: 10px;">总共 {{examineeInfo.total - examineeInfo.noNtotal.length}} 人</h3>
+                        <el-link type="primary" @click="dialogVisibleNoJoin = true">设置特殊人员不参与考核</el-link>
+                        <h4 style="display: inline-block;margin-left: 10px;color: #E6A23C;">不参与 {{examineeInfo.noNtotal.length}} 人</h4>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="3">备&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;注 :</el-col>
+                    <el-col :span="18">
+                        <el-input type="textarea" v-model="examineeInfo.remarks"
+                                  :autosize="{ minRows: 2, maxRows: 4}" placeholder="请输入年度考核备注信息">
+                        </el-input>
+                    </el-col>
+                </el-row>
+            </div>
+        </div>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" @click="dialogVisibleEm = false">取 消</el-button>
+            <el-button size="small" type="primary" @click="saveExamine">确 定</el-button>
+        </span>
+    </el-dialog>
+
+    <el-dialog title="设置特殊人员不参加考核" :close-on-click-modal="false" :close-on-press-escape="false"
+               :visible.sync="dialogVisibleNoJoin" width="40%" top="5%">
+        <div style="width: 100%;margin-bottom:30px;">
+            <el-row>
+                <el-col :span="4" style="margin-bottom: 15px;padding-top: 10px;">
+                    <span style="color: red;">*</span>人员信息 :
+                </el-col>
+                <el-col :span="18" style="margin-bottom: 15px;">
+                    <el-select v-model="foodModel" size="small" multiple filterable remote reserve-keyword placeholder="请输入名字或工号搜索"
+                               :remote-method="selectBlur" @change="handelChangeUser" style="width: 100%" >
+                        <el-option v-for="item in optionsList" :key="item.value" :label="item.label"
+                                   :value="item.value"></el-option>
+                    </el-select>
+                </el-col>
+            </el-row>
+
+            <el-row>
+                <el-col :span="4" style="margin-bottom: 15px;padding-top: 10px;">
+                    <span style="color: red;">*</span>不参与原因 :
+                </el-col>
+                <el-col :span="18" style="margin-bottom: 15px;">
+                    <el-input type="textarea" v-model="examineeInfo.nonRemarks" :autosize="{ minRows: 2, maxRows: 4}" placeholder="请输入以下人员不参加考核的原因">
+                    </el-input>
+                </el-col>
+            </el-row>
+
+            <el-row>
+                <el-col :span="24" style="margin-bottom: 15px;">
+                    <h3 style="margin-left: 10px;">已选中 {{examineeInfo.noNtotal.length}} 人不参与本次考核</h3>
+                </el-col>
+            </el-row>
+        </div>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" type="primary" @click="dialogVisibleNoJoin = false">确 定</el-button>
+        </span>
+    </el-dialog>
+
+    <el-dialog title="设置考核流程时间信息" :close-on-click-modal="false" :close-on-press-escape="false"
+               :visible.sync="dialogVisibleProcess" width="70%" top="5%">
+        <div style="width: 100%;margin-bottom:30px;">
+            <div style="width: 230px;display: inline-block;border-radius: 2px;">
+                <div style="height: 30px;background-color:#909399;
+                line-height: 30px;padding-left: 5px;color: #fff;border-radius: 2px 2px 0 0;">开始考核</div>
+                <div style="height: 50px;border: 1px solid #DCDFE6;padding-top: 10px;padding-left: 5px;border-radius: 0 0 2px 2px;">
+                    <el-date-picker v-model="examineeInfo.beginDate"  size="small" type="datetime" placeholder="选择开始考核日期"
+                                    value-format="yyyy-MM-dd HH:mm:ss"></el-date-picker>
+                </div>
+            </div>
+
+            <div style="width: 230px;display: inline-block;border-radius: 2px;margin-left: 8%;">
+                <div style="height: 30px;background-color:#E6A23C;
+                line-height: 30px;padding-left: 5px;color: #fff;border-radius: 2px 2px 0 0;">结束考核</div>
+                <div style="height: 50px;border: 1px solid #DCDFE6;padding-top: 10px;padding-left: 5px;border-radius: 0 0 2px 2px;">
+                    <el-date-picker v-model="examineeInfo.finishDate" size="small" type="datetime" placeholder="选择结束考核日期"    @change="changeDate"
+                                    value-format="yyyy-MM-dd HH:mm:ss"></el-date-picker>
+                </div>
+            </div>
+
+            <div style="width: 230px;display: inline-block;border-radius: 2px;margin-left: 8%;">
+                <div style="height: 30px;background-color:#409EFF;
+                line-height: 30px;padding-left: 5px;color: #fff;border-radius: 2px 2px 0 0;">结束公示</div>
+                <div style="height: 50px;border: 1px solid #DCDFE6;padding-top: 10px;padding-left: 5px;border-radius: 0 0 2px 2px;">
+                    <el-date-picker v-model="examineeInfo.publicityDate" size="small" type="datetime" placeholder="选择结束公示日期"
+                                    value-format="yyyy-MM-dd HH:mm:ss"></el-date-picker>
+                </div>
+            </div>
+            <img style="width: 850px;" th:src="@{/images/apply/examine.png}">
+        </div>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" type="primary" @click="hanldeProcess">确 定</el-button>
+        </span>
+    </el-dialog>
+
+    <div style="margin-top: -15px;"><el-divider></el-divider></div>
+
+    <div style="margin-top: -15px;">
+        <el-table :data="tableData" border style="width: 100%;" :height="publicHeight">
+            <el-table-column  label="考核计划信息" align="center">
+                <template slot-scope="scope">
+                    <div style="border: 1px solid #DCDFE6;">
+                        <el-row style="text-align: left;border-bottom: 1px solid #DCDFE6;padding: 10px;">
+                            <el-col :span="24">
+                                <h3 style="color: #409EFF;margin-left: 2%;">{{scope.row.title}}</h3>
+                            </el-col>
+                        </el-row>
+                        <el-row>
+                            <el-col :span="3" v-if="scope.row.status==0">
+                                <h2 style="margin-top: 40%;color: #909399;">未开始</h2>
+                            </el-col>
+                            <el-col :span="3" v-if="scope.row.status==1">
+                                <h2 style="margin-top: 40%;color: #F56C6C;">考核中</h2>
+                            </el-col>
+                            <el-col :span="3" v-if="scope.row.status==2">
+                                <h2 style="margin-top: 40%;color: #E6A23C;">公示中</h2>
+                            </el-col>
+                            <el-col :span="3" v-if="scope.row.status==3">
+                                <h2 style="margin-top: 40%;color: #67C23A;">考核完成</h2>
+                            </el-col>
+                            <el-col :span="21" style="font-weight: bold;">
+                                <el-row style="padding: 10px 0;border-bottom: 1px solid #DCDFE6;border-left: 1px solid #DCDFE6;">
+                                    <el-col :span="3" style="text-align: left;margin-left:8px;">考核年度</el-col>
+                                    <el-col :span="8">{{scope.row.startDate}} 到 {{scope.row.endDate}}</el-col>
+
+                                    <el-col :span="2">不参加(人):</el-col>
+                                    <el-col :span="2">
+                                        <el-link type="primary" @click="queryNoPeople(scope.row.special,scope.row.eid)">{{scope.row.NoTotalLength}}</el-link>
+                                    </el-col>
+                                </el-row>
+                                <el-row style="padding: 10px 0;border-bottom: 1px solid #DCDFE6;border-left: 1px solid #DCDFE6;">
+                                    <el-col :span="2" style="text-align: left;margin-left:8px;">考核开始:</el-col>
+                                    <el-col :span="5">{{scope.row.beginDate}}</el-col>
+
+                                    <el-col :span="2" style="text-align: left;margin-left:8px;">考核结束:</el-col>
+                                    <el-col :span="5">{{scope.row.finishDate}}</el-col>
+
+                                    <el-col :span="2" style="text-align: left;margin-left:8px;">结束公示:</el-col>
+                                    <el-col :span="5">{{scope.row.publicityDate}}</el-col>
+                                </el-row>
+                                <el-row style="padding: 10px 0;border-bottom: 1px solid #DCDFE6;
+                                border-left: 1px solid #DCDFE6;">
+                                    <el-col :span="2">参 加(人):</el-col>
+                                    <el-col :span="3">{{scope.row.total}}</el-col>
+
+                                    <el-col :span="2">已考核(人):</el-col>
+                                    <el-col :span="3">{{scope.row.qualified + scope.row.unqualified}}</el-col>
+
+                                    <el-col :span="2">合 格(人):</el-col>
+                                    <el-col :span="3">{{scope.row.qualified}}</el-col>
+
+                                    <el-col :span="2">不合格(人):</el-col>
+                                    <el-col :span="3">{{scope.row.unqualified}}</el-col>
+
+                                    <el-col :span="2">合格率(%):</el-col>
+                                    <el-col :span="2">{{scope.row.passrate}}</el-col>
+                                </el-row>
+
+                                <el-row style="padding: 10px 0;border-left: 1px solid #DCDFE6;">
+                                    <el-col :span="2" style="text-align: left;margin-left: 8px;">备&nbsp;&nbsp;&nbsp;&nbsp;注</el-col>
+                                    <el-col :span="21" style="text-align: left;">{{scope.row.remarks}}</el-col>
+                                </el-row>
+                            </el-col>
+                        </el-row>
+                    </div>
+                </template>
+            </el-table-column>
+            <el-table-column fixed="right" width="200" label="操作">
+                <template slot-scope="scope">
+                    <span class="operate-button">
+                        <el-button size="small" v-if="scope.row.status==1"  @click="finishExamine(scope.row)"  type="danger">结束考核</el-button>
+
+                        <el-button size="small" v-if="scope.row.status==0"  @click="beginExamine(scope.row)" type="primary">开始考核</el-button>
+
+                        <el-button size="small" v-if="scope.row.status==0"  @click="deleteExamine(scope.row)" type="danger">删除考核</el-button>
+
+                        <!--<el-button size="small" v-if="scope.row.status==2"  @click="sendExamine(scope.row)" type="primary">开始公示</el-button>-->
+
+                        <el-button size="small" v-if="scope.row.status==2"  @click="sendExamine(scope.row)" type="primary">结束公示</el-button>
+
+                        <el-button size="small" v-if="scope.row.status>=2" icon="el-icon-view" @click="hanldeAss(scope.row)"
+                                   type="warning">科技成果计分汇总</el-button>
+
+                        <el-button size="small" v-if="scope.row.status>=2" icon="el-icon-view" @click="hanldeApss(scope.row)"
+                                   type="success">科技成果项目汇总</el-button>
+
+                        <el-button size="small" v-if="scope.row.status>=2" icon="el-icon-bottom" @click="exporttasExcel(scope.row)"
+                                   type="info">导出科技成果汇总</el-button>
+                    </span>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <div style="background-color: white;">
+            <el-pagination
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :current-page="pageNum"
+                    :page-sizes="[5, 10, 20, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total">
+            </el-pagination>
+        </div>
+
+    </div>
+    <el-dialog title="不参加人员信息" :visible.sync="dialogTableVisible" width="78%">
+        <el-table :data="NoPeople" :highlight-current-row="true" align="center" height="500" style="width: 100%;">
+            <el-table-column property="nickname" label="姓名"  align="center"></el-table-column>
+            <el-table-column property="username" label="工号"  align="center"></el-table-column>
+            <el-table-column property="academy" label="归属研究院"  align="center" ></el-table-column>
+            <el-table-column property="academy_care" label="承担研究院管理工作"  align="center"></el-table-column>
+            <el-table-column property="tname" label="所属部门"  align="center"></el-table-column>
+            <el-table-column property="remarks" label="原因"  align="center"></el-table-column>
+        </el-table>
+    </el-dialog>
+
+</div>
+<script type="text/javascript">
+    function formatDate(date){
+        let y = date.getFullYear()
+        let m = date.getMonth() + 1
+        m = m < 10 ? ('0' + m) : m
+        let d = date.getDate()
+        d = d < 10 ? ('0' + d) : d
+        let h =date.getHours()
+        h = h < 10 ? ('0' + h) : h
+        let M =date.getMinutes()
+        M = M < 10 ? ('0' + M) : M
+        let s =date.getSeconds()
+        s = s < 10 ? ('0' + s) : s
+        let dateTime= y + '-' + m + '-' + d + ' ' + h + ':' + M + ':' + s;
+        return dateTime;
+    }
+    let emApp = new Vue({
+        el: "#em-app",
+        data: {
+            publicHeight: document.documentElement.clientHeight - 85,
+            dialogVisibleEm: false,//新增考核界面
+            activeNames: '1',//折叠面板
+            dialogVisibleNoJoin:false,//设置不参加人员
+            dialogVisibleProcess:false,//设置流程时间界面
+            examineeInfo:{title:'',startDate:'',endDate:'',advance:true,beginDate:'',finishDate:'',publicityDate:'',
+                confirm:true,total:'',noNtotal:[],nonRemarks:'',remarks:''},//申请数据
+            tableData:[{
+                title:'',startDate:'',endDate:'',
+                beginDate:'',finishDate:'',
+                total:'',special:'',qualified:'',unqualified:'',
+                passrate:'',remarks:''
+            }],//表格数据
+            pageNum: 1,
+            pageSize: 10,
+            total: 0,
+            foodModel: [],//搜索 用户名或工号
+            optionsList: [], // 搜索结果
+            dialogVisibleLnameTotal: false,
+            dialogVisibleLnameScore: false,
+            dialogTableVisible:false,  //不参加人员弹框
+            //不参加人员
+            NoPeople:[],
+            NoTotalLength:0,    //不参加人员数量,
+            timerStatus:0,
+            timeId:0
+        },
+        methods: {
+            handleOpen() {
+                //打开新增考核前的回调
+                this.findSystemUserCount();
+            },
+            findSystemUserCount() {
+                //查询普通用户总人数
+                axios.get("../systemuser/syc").then(res => {
+                    if (res.data.code == 1) {
+                        this.examineeInfo.total = res.data.data;
+                    } else {
+                        this.examineeInfo.total = 0;
+                        this.$message({message: res.data.msg, type: "warning"});
+                    }
+                })
+            },
+            changeDate(){
+                this.$forceUpdate();
+            },
+            selectBlur(query) {
+                // 搜索不参与 考核用户
+                const _this = this;
+                _this.optionsList = [];
+                if (query !== '') {
+                    axios.get("../systemuser/findByName?name=" + query + "&pageno=1&pagesize=10").then(res => {
+                        if (res.data.code == 1) {
+                            for (let i = 0; i < res.data.data.dataset.length; i++) {
+                                _this.optionsList.push({
+                                    value: res.data.data.dataset[i].id,
+                                    label: res.data.data.dataset[i].nickname + " " + res.data.data.dataset[i].username
+                                });
+                            }
+                        }
+                    });
+                }
+            }, handelChangeUser() {
+                // 把 不参与的考核用户 赋值
+                const _this = this;
+                _this.examineeInfo.noNtotal = _this.foodModel;
+            }, hanldeAss(row) {
+                if (row.status > 2 ){
+                    this.$message("请等考核结束后查看~");
+                    return;
+                }
+                //打开 科技成果计分汇总
+                var a = document.createElement('a');
+                var id = Math.random(10000, 99999);
+                //存入缓存
+                localStorage.setItem("eid",row.eid);
+                localStorage.setItem("title",row.title)
+                a.setAttribute('href', "../examine/toAss?urlType=" + id);
+                a.setAttribute('target', '_blank');
+                a.click();
+            }, hanldeApss(row) {
+                if (row.status > 2){
+                    this.$message("请等考核结束后查看~");
+                    return;
+                }
+                //打开 科技成果项目计分汇总
+                var a = document.createElement('a');
+                var id = Math.random(10000, 99999);
+                localStorage.setItem("eids",row.eid);
+                localStorage.setItem("title",row.title)
+                a.setAttribute('href', "../examine/toApss?urlType=" + id);
+                a.setAttribute('target', '_blank');
+                a.click();
+            },
+            //刷新操作
+            queryAgain(){
+                this.queryExamine();
+                this.queryTotal();
+                this.timerInterval();
+                this.$message({showClose: true, message: '刷新成功!',type: 'success'});
+            },
+            queryNoPeople(ids,eid){
+                if (ids==''){
+                    return;
+                }
+                this.dialogTableVisible = true;
+                var params = new URLSearchParams();
+                params.append("ids",ids)
+                params.append("eid",eid)
+                axios.post("../e/queryNoPeople",params).then(res=>{
+                    this.NoPeople=res.data.data.map(item=>{
+                        return{
+                            ...item,
+                            academy: item.academy === 1 ? '是' : '否',
+                            academy_care: item.academy_care === 1 ? '是' : '否'
+                        }
+                    })
+                })
+            },
+            //分页变化
+            handleSizeChange(pageSize) {
+                this.pageSize = pageSize;
+                this.queryExamine();
+            },
+            //分页变化
+            handleCurrentChange(pageNum) {
+                this.pageNum = pageNum;
+                this.queryExamine();
+            },
+            //删除考核
+            deleteExamine(row){
+                this.$confirm('请确认是否取消该考核, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var eid = row.eid;
+                    var params = new URLSearchParams();
+                    params.append("eid",eid)
+                    params.append("beginDate",row.beginDate)
+                    params.append("finishDate",row.finishDate)
+                    params.append("publicityDate",row.publicityDate)
+                    axios.post("../e/deleteExamineByEid",params).then(res=>{
+                        if (res.data.code==1){
+                            this.$message.success("成功取消考核");
+                            this.timerInterval();
+                            this.queryExamine();
+                        }else {
+                            this.$message("网络开小差啦,请稍后重试~");
+                        }
+                    })
+                }).catch(() => {
+                });
+            },
+            //提交考核
+            saveExamine() {
+                this.$confirm('请确认发布该考核, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    if (this.examineeInfo.title == '') {
+                        this.$message("请输入标题");
+                        return;
+                    }
+                    if (this.examineeInfo.startDate == '') {
+                        this.$message("请选择开始时间")
+                        return;
+                    }
+                    if (this.examineeInfo.endDate == '') {
+                        this.$message("请选择截止时间")
+                        return;
+                    }
+                    if (this.examineeInfo.beginDate == '') {
+                        this.$message("请设置流程信息的开始考核时间")
+                        return;
+                    }
+                    if (this.examineeInfo.finishDate == '') {
+                        this.$message("请设置流程信息的考核结束时间")
+                        return;
+                    }
+                    if (this.examineeInfo.publicityDate == '') {
+                        this.$message("请设置流程信息的结束公示时间")
+                        return;
+                    }
+                    if (!this.validateDates(this.examineeInfo.beginDate,
+                        this.examineeInfo.finishDate,
+                        this.examineeInfo.publicityDate)) {
+                        return;
+                    }
+
+                    var params = new URLSearchParams();
+                    params.append("title", this.examineeInfo.title)
+                    params.append("advance", this.examineeInfo.advance)
+                    params.append("confirm", this.examineeInfo.confirm)
+                    params.append("startDate", this.examineeInfo.startDate)
+                    params.append("endDate", this.examineeInfo.endDate)
+                    params.append("beginDate",this.examineeInfo.beginDate)
+                    params.append("finishDate",this.examineeInfo.finishDate)
+                    params.append("publicityDate",this.examineeInfo.publicityDate)
+                    params.append("total", parseInt(this.examineeInfo.total) - this.examineeInfo.noNtotal.length)
+                    params.append("remarks", this.examineeInfo.remarks)
+                    params.append("nonRemarks", this.examineeInfo.nonRemarks)
+                    params.append("noNtotal", this.examineeInfo.noNtotal.join(","))
+                    axios.post("../e/saveExamine", params).then(res => {
+                        if (res.data.code == 1) {
+                            this.$message.success("添加成功!");
+                            this.dialogVisibleEm = false;
+                            this.queryExamine();
+                            this.timerInterval();
+                            this.queryTotal();
+                            this.examineeInfo = {
+                                title: '', startDate: '', endDate: '', advance: '',
+                                confirm: '', total: '', noNtotal: [], nonRemarks: '', remarks: ''
+                            };//申请数据
+                        } else if (res.data.code==-1) {
+                            this.$message("存在考核时间冲突,请选择其他时间~")
+                        }else {
+                            this.$message("网络开小差啦,请稍后重试~");
+                        }
+                    })
+                }).catch(() => {});
+
+            },hanldeProcess(){
+                //退出流程窗口判断
+                if (this.validateDates(this.examineeInfo.beginDate,
+                    this.examineeInfo.finishDate,
+                    this.examineeInfo.publicityDate)) {
+                    this.dialogVisibleProcess = false;
+                }
+            },validateDates(startDateTime, endDateTime, publicityDate){
+                //流程时间判断
+                // 转换字符串日期为Date对象
+                const startDate = new Date(startDateTime);
+                const endDate = new Date(endDateTime);
+                const publicityDateTime = new Date(publicityDate);
+
+                // 判断 endDateTime 是否大于 startDateTime 至少一天
+                const oneDayInMillis = 24 * 60 * 60 * 1000; // 一天的毫秒数
+                if (endDate.getTime() <= startDate.getTime() + oneDayInMillis) {
+                    this.$message.error('结束考核日期 必须在 开始考核日期 之后至少一天');
+                    return false;
+                }
+
+                // 判断 publicityDate 是否大于 endDateTime 至少一天
+                if (publicityDateTime.getTime() <= endDate.getTime() + oneDayInMillis) {
+                    this.$message.error('结束公示日期 必须在 结束考核日期 之后至少一天');
+                    return false;
+                }
+                return true;
+            },
+            //查询考核
+            queryExamine() {
+                var params = new URLSearchParams();
+                params.append("currentPage", this.pageNum)
+                params.append("currentSize", this.pageSize)
+                axios.get("../e/queryExamine?" + params).then(res => {
+                    this.tableData = res.data.data.map(item => {
+                        var length = 0;
+                        if (item.special && item.special.trim() !== '') {
+                            var strings = item.special.split(",");
+                            length = strings.length;
+                        }
+                        return{
+                            ...item,
+                            NoTotalLength:length,
+                        }
+                    });
+                })
+            },
+            //查询考核总数
+            queryTotal() {
+                axios.get("../e/queryTotal").then(res => {
+                    this.total = res.data.data
+                })
+            },
+            //结束考核
+            finishExamine(row) {
+                this.$confirm('此操作将结束该考核, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var params = new URLSearchParams();
+                    params.append("eid", row.eid)
+                    params.append("finishDate",row.finishDate)
+                    axios.post("../e/finishExamine", params).then(res => {
+                        if (res.data.code == 1) {
+                            this.$message.success("考核结束");
+                            this.queryExamine();
+                            this.timerInterval();
+                        } else {
+                            this.$message("网络开小差啦，请稍后重试~");
+                        }
+                    })
+                }).catch(() => {
+                });
+            },
+            //开始考核
+            beginExamine(row) {
+                this.$confirm('此操作将开始该考核, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var params = new URLSearchParams();
+                    params.append("eid", row.eid)
+                    params.append("beginDate",row.beginDate)
+                    axios.post("../e/beginExamine", params).then(res => {
+                        if (res.data.code == 1) {
+                            this.$message.success("考核开始");
+                            this.queryExamine();
+                            this.timerInterval();
+                        }
+                        else {
+                            this.$message("网络开小差啦，请稍后重试~");
+                        }
+                    })
+                }).catch(() => {});
+            },
+            //结束公示
+            sendExamine(row) {
+                this.$confirm('此操作将结束公示, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    var params = new URLSearchParams();
+                    params.append("eid", row.eid)
+                    params.append("publicityDate",row.publicityDate);
+                    axios.post("../e/sendExamine", params).then(res => {
+                        if (res.data.code == 1) {
+                            this.$message.success("考核结束!");
+                            this.queryExamine();
+                            this.timerInterval();
+                        } else {
+                            this.$message("网络开小差啦，请稍后重试~");
+                        }
+                    })
+                }).catch(() => {});
+            },
+            addNowDate(){
+                // 获取今天的日期
+                let today = new Date();
+                // 设置 beginDate 为今天的上午8点
+                let beginDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()+1, 8, 0, 0, 0);
+                // 设置 finishDate 为 beginDate 的后三天的0点
+                let finishDate = new Date(beginDate.getFullYear(), beginDate.getMonth(), beginDate.getDate() + 3, 0, 0, 0,0);
+                // 设置 publicityDate 为 finishDate 的后三天的0点
+                let publicityDate = new Date(finishDate.getFullYear(), finishDate.getMonth(), finishDate.getDate() + 3, 0, 0, 0,0);
+                beginDate=formatDate(beginDate);
+                finishDate=formatDate(finishDate);
+                publicityDate=formatDate(publicityDate);
+                this.examineeInfo.beginDate=beginDate;
+                this.examineeInfo.finishDate=finishDate;
+                this.examineeInfo.publicityDate=publicityDate;
+            },
+            timer(time){
+                let givenTime = new Date(time);
+                let countdownElement = {
+                    days: document.getElementById('days'),
+                    hours: document.getElementById('hours'),
+                    minutes: document.getElementById('minutes'),
+                    seconds: document.getElementById('seconds')
+                };
+                let now = new Date().getTime();
+                let difference = givenTime - now;
+                if (difference <= 0) {
+                    this.$forceUpdate();
+                    this.timerInterval();
+                }
+                let days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((difference % (1000 * 60)) / 1000);
+                countdownElement.days.innerHTML = days.toString().padStart(2, '0');
+                countdownElement.hours.innerHTML = hours.toString().padStart(2, '0');
+                countdownElement.minutes.innerHTML = minutes.toString().padStart(2, '0');
+                countdownElement.seconds.innerHTML = seconds.toString().padStart(2, '0');
+                this.$forceUpdate();
+            },
+            //执行计时器
+            timerInterval(){
+                let time ="";
+                clearInterval(this.timeId)
+                axios.get("../e/queryTimeByRedis").then(res=>{
+                    if (res.data.data) {
+                        let item = res.data.data;
+                        let content = item.content;
+                        if (item.time){
+                            time = item.time;
+                        }
+                        if (content === "任务开始时间") {
+                            this.timerStatus = 1;
+                        } else if (content === "任务结束时间") {
+                            this.timerStatus = 2;
+                        } else if (content === "公示结束时间") {
+                            this.timerStatus = 3;
+                        }
+                        if (time!=""){
+                            this.timeId = setInterval(()=> {
+                                this.timer(time);
+                            }, 1000);
+                        }
+                        this.$forceUpdate();
+                    }else {
+                        this.timerStatus = 0;
+                        this.$forceUpdate();
+                    }
+                });
+            },exporttasExcel(row){
+                //导出科技成果汇总
+                const config={
+                    responseType: 'blob' //这个一定要设置，否则会出现文件下载后打不开的情况
+                }
+                let params = new URLSearchParams();
+                params.append("eid", row.eid);
+                this.$message({showClose: true, message: '正在准备下载,预计1-5分钟,请稍等请勿多次点击!', duration: 2000, type: 'warning'});
+                return axios.post("../e/exporttasExcel",params, config).then(res=>{
+                    let blob = new Blob([res.data], {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; application/octet-stream',
+                    });
+
+                    this.uploadError = false;
+                    const temp = res.headers["content-disposition"].split(";")[1].split("filename=")[1];
+                    let fileName = decodeURIComponent(temp);
+                    let objectUrl = URL.createObjectURL(blob);// 创建下载的链接
+                    let a = document.createElement("a");
+                    a.href = objectUrl;
+                    a.download = fileName;
+                    a.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, view: window}));
+                    window.URL.revokeObjectURL(blob);
+                })
+            }
+        }, created(){
+            this.queryExamine();
+            this.queryTotal();
+            this.addNowDate();
+        }, mounted(){
+            this.timerInterval();
+        }
+    })
+</script>
+</body>
+</html>

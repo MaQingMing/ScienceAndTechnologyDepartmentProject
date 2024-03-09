@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div th:fragment="copyachievement">
+    <el-row>
+        <!--申请时间-->
+        <el-col :span="6">
+            <div class="cardtextstyle" style="float: left;margin-left: 20px">申请时间：
+                <el-tooltip class="item" effect="dark" :content="scope.row.time" placement="top">
+                    <span>{{ scope.row.time }}</span>
+                </el-tooltip>
+            </div>
+        </el-col>
+        <el-col :span="2">
+            <div class="cardtextstyle">项目名称：</div>
+        </el-col>
+        <el-col :span="13" v-if="scope.row.team==0" class="achievement-name1">
+            <div class="cardtextstyle" style="width: 100%;text-align: left;">
+                <el-tooltip class="item" effect="dark" :content=" scope.row.name " placement="top">
+                    <span style="color: #1C86EE">{{ scope.row.name | subString('achievement-name1') }}</span>
+                </el-tooltip>
+            </div>
+        </el-col>
+        <el-col :span="10" v-if="scope.row.team==1" class="achievement-name2">
+            <div class="cardtextstyle" style="width: 100%;text-align: left;color: #1C86EE">
+                <el-tooltip class="item" effect="dark" :content=" scope.row.name " placement="top">
+                    <span style="color: #1C86EE">{{ scope.row.name | subString('achievement-name2') }}</span>
+                </el-tooltip>
+            </div>
+        </el-col>
+        <el-col :span="2" v-if="scope.row.team==1">
+            <div class="cardtextstyle" style="">团队成员</div>
+        </el-col>
+        <el-col :span="2" v-if="scope.row.team==1">
+            <div class="cardtextstyle" style="">可换酬金</div>
+        </el-col>
+        <el-col :span="2" v-if="scope.row.team==1">
+            <div class="cardtextstyle" style="">不可换酬金</div>
+        </el-col>
+        <el-col :span="3" v-if="scope.row.team==0">
+            <div class="cardtextstyle" style="">科技分</div>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="3">
+            <div class="bottomcard" style="margin-bottom: 5px;" th:insert="~{common/science/science_apply_status :: copyaps}"></div>
+        </el-col>
+        <el-col :span="18" v-if="scope.row.team==0" class="surround">
+            <el-row class="bottomborder">
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">项目负责人:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.username" placement="top">
+                            <span>{{ scope.row.username }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="8" class="achievement-dept">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">批准单位:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.dept" placement="top">
+                            <span>{{scope.row.dept | subString('achievement-dept')}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">科研机构、教学院:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.userDept" placement="top">
+                            <span>{{scope.row.userDept | subString}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="8" class="achievement-dept">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">我校第一申报单位:
+                        <span>是</span>
+                    </div>
+                </el-col>
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">我校排名:
+                        <span>32</span>
+                    </div>
+                </el-col>
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">教职工排名:
+                        <span>45</span>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">获奖形式及内容:
+                        <span>{{ scope.row.content }}</span>
+                    </div>
+                </el-col>
+                <el-col :span="8" class="achievement-level1">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">获奖等级:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.level" placement="top">
+                            <span>{{ scope.row.level | subString('achievement-level1',15)}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="8" class="achievement-grade1">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">项目级别:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.grade" placement="top">
+                            <span>{{ scope.row.grade | subString('achievement-grade1',15) }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="24" class="achievement-according">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">计算依据：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.according " placement="top">
+                            <span>{{ scope.row.according | subString('achievement-according',55)}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="separate">
+                <el-col :span="12" class="achievement-remarks">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">备注：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.remarks " placement="top">
+                            <span>{{ scope.row.remarks | subString('achievement-remarks') }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="6" v-if="scope.row.fileNum>0">
+                    <div class="cardtextstyle" style="float: left;margin-top: 10px">附件信息：
+                        <span @click="selectfile(scope.row.gaid)" style="color: #1C86EE">查看附件</span>
+                    </div>
+                </el-col>
+                <el-col :span="6" v-if="scope.row.recordid!=null">
+                    <div class="cardtextstyle" style="float: left;margin-top: 6px">备案信息：
+                        <span @click="detail(scope.row.recordid)" style="color: #1C86EE">查看备案</span>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-col>
+        <el-col :span="15" v-if="scope.row.team==1" class="surround">
+            <el-row class="bottomborder">
+                <el-col :span="12">
+                    <div class="cardtextstyle" style="float: left;">项目负责人:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.username" placement="top">
+                            <span>{{ scope.row.username }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="12">
+                    <div class="cardtextstyle" style="float: left;">科研机构、教学院:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.userDept" placement="top">
+                            <span>{{scope.row.userDept | subString}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="12" class="achievement-dept">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">批准单位:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.dept" placement="top">
+                            <span>{{scope.row.dept | subString('achievement-dept')}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="12" class="achievement-content">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">获奖形式及内容:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.content" placement="top">
+                            <span>{{ scope.row.content | subString('achievement-content',20) }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">我校排名:
+                        <span>32</span>
+                    </div>
+                </el-col>
+                <el-col :span="8">
+                    <div class="cardtextstyle" style="float: left;">教职工排名:
+                        <span>45</span>
+                    </div>
+                </el-col>
+                <el-col :span="8" class="achievement-dept">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">我校第一申报单位:
+                        <span>是</span>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="12" class="achievement-level2">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">获奖等级:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.level" placement="top">
+                            <span>{{ scope.row.level | subString('achievement-level2',15)}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="12" class="achievement-grade">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">项目级别:
+                        <el-tooltip class="item" effect="dark" :content="scope.row.grade" placement="top">
+                            <span>{{ scope.row.grade| subString('achievement-grade',15) }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="bottomborder">
+                <el-col :span="24" class="achievement-according">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">计算依据：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.according " placement="top">
+                            <span>{{ scope.row.according | subString('achievement-according',45)}}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+            </el-row>
+            <el-row class="separate">
+                <el-col :span="12" class="achievement-remarks">
+                    <div class="cardtextstyle" style="width: 100%;text-align: left;">备注：
+                        <el-tooltip class="item" effect="dark" :content=" scope.row.remarks " placement="top">
+                            <span>{{ scope.row.remarks | subString('achievement-remarks') }}</span>
+                        </el-tooltip>
+                    </div>
+                </el-col>
+                <el-col :span="6" v-if="scope.row.fileNum>0">
+                    <div class="cardtextstyle" style="float: left;margin-top: 10px">附件信息：
+                        <span @click="selectfile(scope.row.gaid)" style="color: #1C86EE">查看附件</span>
+                    </div>
+                </el-col>
+                <el-col :span="6" v-if="scope.row.recordid!=null">
+                    <div class="cardtextstyle" style="float: left;margin-top: 6px">备案信息：
+                        <span @click="detail(scope.row.recordid)" style="color: #1C86EE">查看备案</span>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-col>
+        <el-col :span="6" v-if="scope.row.team==1">
+            <div class="teamlist" style="height: 240px;overflow-y: scroll">
+                <el-row v-for="item in scope.row.scoreInfo">
+                    <el-col :span="8">
+                        <div class="cardtextstyle" v-if="item.host == 1"><span style="color: #1C86EE">{{item.nickname}}</span></div>
+                        <div class="cardtextstyle" v-else>{{item.nickname}}</div>
+                    </el-col>
+                    <el-col :span="8">
+                        <div class="cardtextstyle" style="color: #67C23A" v-if="item.can_score>0">{{item.can_score}}</div>
+                        <div class="cardtextstyle" style="color: #F56C6C" v-else>{{item.can_score}}</div>
+                    </el-col>
+                    <el-col :span="8">
+                        <div class="cardtextstyle" style="color: #67C23A" v-if="item.cannot_score>0">{{item.cannot_score}}
+                        </div>
+                        <div class="cardtextstyle" style="color: #F56C6C" v-else>{{item.cannot_score}}</div>
+                    </el-col>
+                </el-row>
+            </div>
+        </el-col>
+        <el-col :span="3" v-if="scope.row.team==0">
+            <span v-if="scope.row.scoreInfo">
+                <div v-if="scope.row.scoreInfo[0].can_score>0">
+                    <a>可换酬金</a>
+                    <div class="cardtextstyle2" style="color: #67C23A;margin-top: -10px;line-height: 170px;height: 170px">
+                        <b style="font-size: 18px">{{ scope.row.scoreInfo[0].can_score }}</b>
+                    </div>
+                </div>
+                <span v-if="scope.row.scoreInfo[0].can_score == 0&&scope.row.scoreInfo[0].cannot_score==0">
+                    <div class="cardtextstyle2" style="color: #F56C6C;margin-top: -10px;"><b>0分</b></div>
+                </span>
+                <div v-if="scope.row.scoreInfo[0].cannot_score>0">
+                    <a>不可换酬金</a>
+                    <div class="cardtextstyle2" style="color: #67C23A;margin-top: -10px;line-height: 170px;height: 170px">
+                        <b style="font-size: 18px">{{ scope.row.scoreInfo[0].cannot_score }}</b>
+                    </div>
+                </div>
+            </span>
+            <span v-else>
+                <div class="cardtextstyle2" style="color: #F56C6C;margin-top: -10px;" ><b>0分</b></div>
+            </span>
+        </el-col>
+    </el-row>
+</div>
+</body>
+</html>

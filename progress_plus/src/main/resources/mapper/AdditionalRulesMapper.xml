@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.mapper.AdditionalRulesMapper">
+
+    <select id="queryRoles" resultType="com.yc.vo.other.AdditionalRulesVo">
+        select ar.rid,ar.trtid,ar.content,ar.childid,ar.ratio,ar.type,ar.score,ar.status,trt.trname,CASE
+        WHEN ar.childid IS NOT NULL THEN (SELECT lname FROM tech_results_level WHERE leid = ar.childid)
+        ELSE NULL
+        END AS lname from additional_rules ar INNER JOIN tech_results_type trt ON ar.trtid = trt.trid
+        <where>
+            <if test="context !=null and context !=''">
+                ar.content LIKE CONCAT ('%',#{context},'%')
+                OR ar.trtid in(select trid from tech_results_type where trname LIKE CONCAT ('%',#{context},'%'))
+            </if>
+        </where>
+        limit #{currentPage},#{currentSize}
+    </select>
+
+    <select id="queryRolesTotal" resultType="int">
+        select COUNT(a.rid) as total from (
+        select ar.rid,ar.trtid,ar.content,ar.childid,ar.ratio,ar.type,ar.score,ar.status,trt.trname from additional_rules ar INNER JOIN tech_results_type trt ON ar.trtid = trt.trid
+        <where>
+            <if test="context !=null and context !=''">
+                ar.content LIKE CONCAT ('%',#{context},'%')
+                OR ar.trtid in(select trid from tech_results_type where trname LIKE CONCAT ('%',#{context},'%'))
+            </if>
+        </where>) a
+    </select>
+
+    <!-- 通过项目类型id查询附则 -->
+    <select id="queryAdditionalByTrtid" resultType="com.yc.entity.AdditionalRules">
+        select rid, content, ratio, type, score ,childid,trtid from additional_rules where trtid = #{trtid}
+    </select>
+
+</mapper>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head">
+</head>
+<link rel="stylesheet" type="text/css" th:href="@{css/login2.css}">
+<body style="background:url('images/hgbg.jpg') no-repeat; background-size: 100% 100%;">
+<div id="app" >
+    <section style="align-items: center;position: absolute;top: 4%;left:5%;
+    padding-left: 20px;padding-right: 20px;">
+        <div class="auth_logo"></div>
+        <div class="line"></div>
+        <div class="auth_title">科技与校企合作处</div>
+    </section>
+    <div class="app_login_div">
+        <div class="auth_title" style="width: 100%;text-align: center;color: #fff;margin-top: 30%;"> 科技成果自主申报服务系统 </div>
+        <div class="login-box" v-loading="loading">
+            <div class="tabHead">
+                <span class="selected_underline"><b>帐号登录</b></span>
+                <div style="text-align: center;margin-top: -8px;">
+                    <div style="width: 100px;height: 3px;background: #0168B5;display: inline-block;"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <div style="width: 65%;margin: 0px auto;">
+                    <el-input v-model="user.username" placeholder="请输入账号(工号)" @keyup.enter.native="login()"></el-input>
+                    <el-input v-model="user.password" placeholder="请输入密码(默认密码工号)" show-password @keyup.enter.native="login()"></el-input>
+                    <el-input style="width: 60%;float: left;" type="text" placeholder="验证码" class="input-val" v-model.trim="yanzhen" @keyup.enter.native="login()"></el-input>
+                    <canvas id="scanvas" @click="handleCanvas()"></canvas>
+                    <el-button type="submit" @click="login()" style="">登录</el-button>
+                    <el-checkbox style="margin-bottom: 10px" @change="handleIsAdmin" v-model="user.isAdmin">我是管理员</el-checkbox>
+                </div>
+            </div>
+            <div class="footer"></div>
+        </div>
+        <div class="login_tips">
+            <p>湖南工学院-科技与校企合作处-科技成果自主申报服务系统@2023</p>
+            <p>技术支持：衡阳市源辰信息科技有限公司</p>
+            <p>地址：湖南省衡阳市珠晖区衡花路18号 </p>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/login_verify.js}"></script>
+</body>
+</html>

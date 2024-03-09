@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/apply_header :: head"></head>
+<body>
+<!-- 主页面 -->
+<div id="app">
+    <!-- 申请内容填写 -->
+    <div class="Contentfilling">
+        <div style="width: 99%;margin-top: 5px;">
+            <div th:insert="~{common/apply/apply_tabs :: copytabs}"></div>
+        </div>
+        <div style="width: 99%;margin-top: 0px" v-for="(item, index) in editableTabs">
+            <el-collapse v-model="item.activeName" accordion v-if="editableTabsValue == item.name">
+                <el-collapse-item name="1">
+                    <template slot="title">
+                        <div class="cf-title" style="width: 99%">
+                            <el-tooltip class="item" effect="dark" content="*为必填项" placement="top">
+                                <p style="">基本信息/材料上传</p>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                    <div style="margin-top: 5px;width: 90%;margin-left: 5%;">
+                        <div class="infostyle">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>荣誉称号:</p>
+                            </div>
+                            <div class="inputstyle" style="width: 950px;">
+                                <el-input id="input-xmname" v-model="item.xmname" placeholder="请输入荣誉名称"
+                                          @change="showtopart2btn=true"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>申请人:</p>
+                            </div>
+                            <div class="inputstyle" style="width: 250px;">
+                                <el-select style="width: 100%;" v-model="editableTabs[editableTabsValue].people"
+                                           filterable
+                                           :filter-method="inputQuery"
+                                           value-key="nickname"
+                                           :disabled="true"
+                                           default-first-option placeholder="请输入或选择成员">
+                                    <el-option v-for="item in searchedUsers" :key="item.id"
+                                               :label="item.nickname + ' ' + item.username"
+                                               :value="item">
+                                    </el-option>
+                                </el-select>
+                            </div>
+                        </div>
+                        <div class="infostyle" style="margin-left: 50px;">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>批准单位:</p>
+                            </div>
+                            <div class="inputstyle">
+                                <el-input v-model="item.dept" placeholder="请输入批准部门"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle" style="margin-left: 8px;">
+                                <p>备注:</p>
+                            </div>
+                            <div class="inputstyle" style="width: 950px;margin-left: -8px;">
+                                <el-input v-model="item.remarks" placeholder="请输入备注"></el-input>
+                            </div>
+                        </div>
+                        <div class="cf-title" style="float: left;width: 100%;">
+                            <i class="el-icon-info" style="margin-left: -80px;"></i>
+                            <el-tooltip class="item" effect="dark" content="*能上传多个jpg/png/pdf文件，且不超过500kb"
+                                        placement="top">
+                                <p style="margin-top: -20px;">文件上传</p>
+                            </el-tooltip>
+                        </div>
+                        <div class="uploaddiv">
+                            <el-upload
+                                    list-type="text"
+                                    class="upload-demo"
+                                    drag
+                                    :auto-upload="false"
+                                    :on-change="handleChangeFile"
+                                    :on-remove="handleRemove"
+                                    accept=".pdf,.jpg,.doc,.png,.docx"
+                                    ref="upload"
+                                    action="#"
+                                    :file-list="item.fileList"
+                                    multiple>
+                                <i class="el-icon-upload"></i>
+                                <div class="el-upload__text" style="font-weight: bold">
+                                    <div class="el-upload__text" style="font-weight: bold">
+                                        将文件拖到此处，或<em>点击上传</em></div>
+                                    <div class="el-upload__text" style="font-weight: bold">只能上传<em>10</em>个<em>jpg/png/pdf/word</em>文件，且不超过<em>5M</em>
+                                    </div>
+                                </div>
+                            </el-upload>
+                        </div>
+                    </div>
+                </el-collapse-item>
+                <el-collapse-item name="2">
+                    <template slot="title">
+                        <div class="cf-title" style="width: 99%">
+                            <el-tooltip class="item" content="*请对照表格在下方选择框选择荣誉类型并填写相关信息"
+                                        effect="dark" placement="top">
+                                <p style="">类别选择</p>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                    <div style="width: 100%;">
+                        <div style="width: 90%;margin-left: 5%;">
+                            <el-table :data="tableData" highlight-current-row :ref="'tb' + index" key="lname"
+                                      row-key="lname"
+                                      @row-click="handleCurrentChange"
+                                      @selection-change="handleSelectionChange"
+                                      style="width: 100%" height="350">
+                                <el-table-column type="selection" width="" :reserve-selection="true"></el-table-column>
+                                <el-table-column prop="id" width="0" v-if="false"></el-table-column>
+                                <el-table-column prop="lname" label="项目级别"></el-table-column>
+                                <el-table-column prop="score" label="分数"></el-table-column>
+                            </el-table>
+                        </div>
+                    </div>
+
+                </el-collapse-item>
+            </el-collapse>
+        </div>
+    </div>
+    <div class="bottomcard" style="margin-bottom: 5px;" th:insert="~{common/apply/apply_bottom :: copybottom}"></div>
+</div>
+<!--js-->
+<script type="text/javascript">
+    var v = new Vue({
+        el: "#app",
+        data: {
+            applyPageName: '科技荣誉',
+            chinesedata: ['一', '二', '三', '四', '五', '六'],// 中文数字
+            editableTabs: [{
+                dept: "", //批准单位
+                trtid: "", //项目类型id
+                sid: "", //申请人id
+                xmname: "", // 项目名称
+                remarks: "", // 项目备注
+                leid: "", // 项目级别
+                childid: "", // standardid
+                score: 0,//科技分
+                title: '新建申报一',
+                activeName: '1',// 折叠面板参数
+                name: 0,
+                fileList: [],// 文件列表
+                showfs: 0,// 用于显示的分数
+                xmfs: 0, // 项目总分
+                dialogVisible: false,// 是否显示成员选择与分数分配弹窗
+                size: 0,
+                // 申请人
+                people: {
+                    id: "",
+                    nickname: ""
+                },
+                allfinish: 0,
+                type: ""
+            }],//标签页数组
+            editableTabsValue: '0',//标签页默认选中
+            tabIndex: 0,//当前标签的下标
+            card1: true, // 是否显示基础信息卡
+            card2: false, // 是否显示选择项目类别卡
+            card3: false, // 是否显示提交卡
+            active: "1", // 进度条参数
+            showtopart2btn: false, // 是否显示基础信息下一步按钮
+            showtopart3btn: false, // 是否显示类别选择卡片的下一步按钮
+            qr: false,// 是否确认信息填写完毕
+            // 选择申请人列表
+            searchedUsers: [],
+            multipleSelection: [], // 选择的级别/类别
+            tableData: [],
+            levels: [],
+            currentRow: {}, // 当前选中的行
+            size: 0,
+            allSuccess: false,
+            isChecked: false,
+        },
+        filters: {
+            // 截取显示的字体
+            subString(value) {
+                if (!value) return "无"
+                return value.lname
+            },
+            subString2(value) {
+                if (!value) return "无";
+                //不是空的就将nickname查出来
+                return value
+            },
+            subString5(value) {
+                if (!value) return "无";
+                return value;
+            }
+        },
+        created() {
+            this.user = JSON.parse(sessionStorage.getItem("user"));
+            this.editableTabs[this.editableTabsValue].people = this.user.user;
+            this.searchedUsers[0] = this.user.user;
+            this.getLevel()
+        }, mounted() {
+            document.getElementById("input-xmname").focus();
+        },
+        methods: {
+            // 新建标签页
+            handleTabsEdit(currentName, action) {
+                const _this = this;
+                //添加标签页
+                if (currentName === 'add') {
+                    if ((_this.editableTabs.length) <= 5) {
+                        let newTabIndex = ++_this.tabIndex + '';
+                        _this.editableTabs.push({
+                            dept: "", //批准单位
+                            sid: "", //申请人id
+                            xmname: "", // 项目名称
+                            remarks: "", // 项目备注
+                            leid: "", // 项目级别
+                            childid: "", // standardid
+                            score: 0,//科技分
+                            activeName: '1',// 折叠面板参数
+                            fileList: [],// 文件列表
+                            showfs: 0,// 用于显示的分数
+                            xmfs: 0, // 项目总分
+                            dialogVisible: false,// 是否显示成员选择与分数分配弹窗
+                            size: 0,
+                            // 申请人
+                            people: {
+                                id: "",
+                                nickname: ""
+                            },
+                            allfinish: 0,
+                            trtid: "",
+                            title: '新建申报' + this.chinesedata[_this.tabIndex],
+                            name: newTabIndex,
+                            currentRow: {} // 当前选中的行
+                        });
+                        _this.editableTabsValue = newTabIndex;
+                        _this.editableTabs[_this.editableTabsValue].people = _this.user.user;
+                        _this.editableTabs[this.editableTabsValue].trtid = _this.levels[0].trid;
+                    } else {
+                        _this.$notify({
+                            title: '温馨提示',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="margin-top: -5px;font-weight: bold">一次只能申请6个!</p>',
+                            position: 'top-left'
+                        });
+                    }
+                    return false;
+                } else {
+                    setTimeout(tmp => {
+                        let tb = _this.$refs['tb' + currentName][0];
+                        tb.selection.push(_this.editableTabs[currentName].currentRow);
+                        if (tb.selection.length > 0) {
+                            tb.toggleRowSelection(tb.selection.pop())
+                        }
+                        _this.editableTabsValue = currentName;
+                    }, 100)
+                }
+            },
+            // 删除标签页
+            removeTab(targetName) {
+                const _this = this;
+                //删除标签页
+                if (_this.editableTabs.length <= 1) {
+                    setTimeout(function () {
+                        window.parent.postMessage({url:"project_application/toProject_apply"}, "*");
+                    }, 2000)
+                    return false;
+                }
+                let tabs = _this.editableTabs;
+                _this.editableTabs = tabs.filter(tab => tab.name != targetName);
+                for (let i = 0; i < _this.editableTabs.length; i++) {
+                    if (_this.editableTabs[i].name != i) {
+                        _this.editableTabs[i].name = i + '';
+                        _this.editableTabs[i].title = "新增申报" + this.chinesedata[i];
+                    }
+                }
+                _this.editableTabsValue = _this.editableTabs[_this.editableTabs.length - 1].name;
+                _this.tabIndex = (_this.editableTabs.length - 1);
+            },
+            // 获取项目级别信息
+            getLevel() {
+                axios.get("../honorStandard/level").then(res => {
+                    if (res.data.code == 1) {
+                        this.levels = res.data.data;
+                        if (!this.levels) {
+                            return;
+                        }
+                        this.editableTabs[this.editableTabsValue].trtid = this.levels[0].trid;
+                        let result = []
+                        // 对数据进行处理
+                        this.levels.forEach(item => {
+                            result[item.lname] = {
+                                leid: item.leid,
+                                score: item.score,
+                                lname: item.lname,
+                                id: item.id
+                            };
+                        })
+                        // 存入tableData中
+                        for (let key in result) {
+                            let item = {}
+                            item.lname = key;
+                            item.leid = result[key].leid;
+                            item.score = result[key].score;
+                            item.id = result[key].id;
+                            this.tableData.push(item);
+                        }
+                    } else {
+                        this.tableData = [];
+                    }
+                })
+            },
+            inputQuery(value) {
+                // 如果数字超过5个就查询
+                if (value.match(/\d{5}/)) {
+                    axios.get("../gainApply/user", {
+                        params: {
+                            username: value
+                        }
+                    }).then(res => {
+                        if (res.data.code == 1) {
+                            this.searchedUsers = res.data.data;
+                        } else {
+                            this.searchedUsers = []
+                        }
+                    })
+                } else if (!value.match(/\d/) && value.length != 0) {
+                    // 不为数字就直接通过名字查询
+                    axios.get("../gainApply/user", {
+                        params: {
+                            nickname: value
+                        }
+                    }).then(res => {
+                        if (res.data.code == 1) {
+                            this.searchedUsers = res.data.data;
+                        } else {
+                            this.searchedUsers = []
+                        }
+                    })
+                }
+            },
+            // 是否确保信息无误与填写完整
+            async handleCheckedCitiesChange() {
+                if (!await this.isSubmit()) {
+                    this.isChecked = false;
+                    this.qr = false;
+                    return;
+                }
+                this.qr = !this.qr;
+            },
+            // 是否能够提交
+            async isSubmit() {
+                var can = 1;// 0为不可提交 1为可提交
+                var errortext = ""
+                this.editableTabs.forEach((item, index) => {
+                    if (!item.xmname) {
+                        errortext = errortext + item.title + '的项目名称，';
+                        can = 0;
+                    }
+                    if (!item.dept) {
+                        errortext = errortext + item.title + '的批准单位，';
+                        can = 0;
+                    }
+                    if (item.currentRow == undefined || item.currentRow.lname == undefined) {
+                        errortext = errortext + item.title + '的荣誉等级，';
+                        can = 0;
+                    }
+                })
+
+                if (can == 0) {
+                    this.$notify({
+                        title: '温馨提示',
+                        message: '系统检测您有以下信息未进行填写：' + errortext + '请填写后再进行提交。',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                    return false;
+                }
+                return true;
+            },
+            async submit() {
+                for (let i = 0; i < this.editableTabs.length; i++) {
+                    let params = new FormData();
+                    this.editableTabs[i].fileList.forEach(file => {
+                        params.append("files", file.raw);
+                    })
+                    this.editableTabs[i].score = this.editableTabs[i].currentRow.score
+                    this.editableTabs[i].scoreInfo = this.editableTabs[this.editableTabsValue].people.id + "::" + this.editableTabs[i].currentRow.score;
+                    this.editableTabs[i].sid = this.editableTabs[this.editableTabsValue].people.id;
+                    for (let j = 0; j < this.levels.length; j++) {
+                        if (this.levels[j].id == this.editableTabs[i].currentRow.id) {
+                            this.editableTabs[i].leid = this.levels[j].leid;
+                            this.editableTabs[i].childid = this.levels[j].id;
+                            this.editableTabs[i].cash = this.levels[j].cash;
+                            break;
+                        }
+                    }
+                    let item = {
+                        dept: this.editableTabs[i].dept, //批准单位
+                        trtid: this.editableTabs[i].trtid, //项目类型id
+                        sid: this.editableTabs[i].sid, //申请人id
+                        name: this.editableTabs[i].xmname, // 项目名称
+                        remarks: this.editableTabs[i].remarks, // 项目备注
+                        leid: this.editableTabs[i].leid, // 项目级别
+                        cash: this.editableTabs[i].cash, // 能否换现
+                        childid: this.editableTabs[i].childid, // standardid
+                        scoreInfo: this.editableTabs[i].scoreInfo, // 分配详情
+                        score: this.editableTabs[i].score
+                    }
+                    let json = JSON.stringify(item)
+                    params.append("applyVo", json);
+                    axios.post("../honorApplyInfo/add", params, {
+                        headers: {
+                            "Content-Type": "multipart/form-data" // 设置请求头
+                        }
+                    }).then(res => {
+                        if (res.data.code == 1) {
+                            // 上传成功
+                            this.$notify({
+                                title: '',
+                                dangerouslyUseHTMLString: true,
+                                message: '<p style="color: #33ce0c;margin-top: -5px;font-weight: bold">提交成功！</p>',
+                                position: 'top-left'
+                            });
+                            this.removeTab(i);
+                        } else {
+                            this.allSuccess = false;
+                            this.$message({message: res.data.msg, type: "error"})
+                        }
+                    })
+                }
+            },
+            async commit(row) {
+                await this.submit();
+            },
+            async topart3() {
+                this.editableTabs[this.editableTabsValue].sid = "";
+                this.editableTabs[this.editableTabsValue].scoreInfo = "";
+                this.pname = "";
+                if (!(this.editableTabs[this.editableTabsValue].people.id != "")) {
+                    this.$notify({
+                        title: '提示',
+                        message: '请填写完整人员信息,再进行下一步',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                    return;
+                }
+                this.active = 3;
+                this.card3 = true
+                this.card2 = false
+            },
+            //文件上传方法 限制文件上传类型与大小
+            handleChangeFile(file, fileList) {
+                const allowedExtensions = ['jpg', 'png', 'pdf', 'doc', 'docx'];
+                const fileExtension = file.name.split('.').pop();
+                if (file.size / 1024 / 1024 < 5 && allowedExtensions.includes(fileExtension.toLowerCase())) {
+                    this.editableTabs[this.editableTabsValue].fileList.push(file);
+                } else {
+                    if (file.size / 1024 / 1024 >= 5) {
+                        // 错误时显示的信息
+                        this.$notify({
+                            title: '',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">文件过大</p>',
+                            position: 'top-left'
+                        });
+                    } else {
+                        // 错误时显示的信息
+                        this.$notify({
+                            title: '',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">不支持该文件类型</p>',
+                            position: 'top-left'
+                        });
+                    }
+                    this.handleRemove(file);
+                }
+            },
+            // 删除文件
+            handleRemove(file, fileList) {
+                this.editableTabs[this.editableTabsValue].fileList =
+                    this.editableTabs[this.editableTabsValue].fileList.filter((f) => file.name !== f.name)
+                // 强制刷新组件以更新文件列表
+                this.$forceUpdate();
+            },
+            // 在删除文件前的操作
+            beforeRemove(file, fileList) {
+                return this.$confirm(`确定移除 ${file.name}？`);
+            },
+            //文件超出方法
+            handleExceed(files, fileList) {
+                this.$notify({
+                    title: '',
+                    dangerouslyUseHTMLString: true,
+                    message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">最多只能上传10个文件</p>',
+                    position: 'top-left'
+                });
+            },
+            handleSelectionChange(selection) {
+                this.editableTabs[this.editableTabsValue].currentRow = selection[0];
+                let tb = this.$refs['tb' + this.editableTabsValue][0];
+                if (selection.length > 1) {
+                    tb.clearSelection();
+                    tb.toggleRowSelection(selection.pop());
+                }
+            },
+            handleCurrentChange(selection) {
+                let tb = this.$refs['tb' + this.editableTabsValue][0];
+                tb.clearSelection();
+                this.editableTabs[this.editableTabsValue].currentRow = selection;
+                tb.toggleRowSelection(selection);
+            }
+        }
+    })
+</script>
+</body>
+</html>

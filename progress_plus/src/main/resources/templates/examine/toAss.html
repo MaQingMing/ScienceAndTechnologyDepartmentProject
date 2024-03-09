@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<body>
+<div id="ass-App" style="width: 98%;margin: 0 auto;" v-cloak>
+    <h1 style="text-align: center;margin-bottom: 1%;">{{title}}-科技分科技成果计分汇总</h1>
+    <div style="margin-bottom: 1%;">
+        <el-input style="margin-left: 35%;width: 20%;margin-right: 20px;" size="small"
+                  v-model="queryName" placeholder="请输入姓名或工号搜索"></el-input>
+        <el-button type="primary" size="small" @click="handelQuerInfo">查 询</el-button>
+    </div>
+    <div>
+        <el-table  :data="tableData" border :span-method="objectSpanMethod" style="width: 100%">
+            <el-table-column v-for="(arrd,index) in headers" :key="index" :label="arrd.name" align="center"
+                             show-overflow-tooltip>
+                <!-- 有子级 -->
+                <el-table-column v-for="(arrd2,index2) in arrd.headrsChild" align="center" :label="arrd2.name"
+                                 show-overflow-tooltip>
+                    <template slot-scope="{row, $index}">
+                        <span>{{row[arrd2.key]}}</span>
+                    </template>
+                </el-table-column>
+                <template slot-scope="{row, $index}">
+                    <span>{{row[arrd.key]}}</span>
+                </template>
+            </el-table-column>
+        </el-table>
+    </div>
+    <div style="background-color: white;padding: 3px 0px;margin-bottom: 1%;">
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="pageNum"
+                :page-sizes="[10, 20, 40, 60, 80]"
+                :page-size="pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </div>
+    <h2 style="text-align: center;margin-bottom: 1%;">科研机构、教学院-科技分科技成果计分汇总</h2>
+    <el-table  :data="tableLabeldeptData" ref="tableLabeldept" height="400" border stripe  show-summary style="width: 100%;margin-bottom: 2%;">
+        <el-table-column prop="tname" label="科研机构、教学院"  align="center">
+            <template slot-scope="scope">
+                {{scope.row.tname}}-小计
+            </template>
+        </el-table-column>
+        <el-table-column prop="direction" label="纵向" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="transverse" label="横向" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="achievement" label="成果奖" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="paper" label="论文" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="book" label="著作" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="invent" label="专利" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="scientific" label="平台" sortable width="100" align="center"></el-table-column>
+        <el-table-column prop="honor" label="科技荣誉" sortable width="120" align="center"></el-table-column>
+        <el-table-column prop="count" label="总分" sortable width="100" align="center"></el-table-column>
+    </el-table>
+</div>
+<script type="text/javascript">
+    let assApp = new Vue({
+        el: "#ass-App",
+        data: {
+            publicHeight: document.documentElement.clientHeight - 85,
+            tableData: [],//表格数据
+            tableLabeldeptData:[],//二级学院统计
+            spanArr: [],//合并单元格
+            queryName: "", // 搜索框 用户名或工号
+            headers: [
+                {name:'所属二级学院',key:'tname'},
+                {name:'姓名',key:'nickname'},
+                {name:'需要完成的科研任务计分',key:'kyrw',headrsChild:[
+                        {name:'学历',key:'edu'},
+                        {name:'职称',key:'technical'},
+                        {name:'归属研究院',key:'academy'},
+                        {name:'承担研究院管理工作',key:'academyCare'},
+                    ]},
+                {name:'应完成科研任务标准',key:'standard'},
+                {name:'实际完成的科研成果计分',key:'cgjf',headrsChild:[
+                        {name:'纵向',key:'direction'},
+                        {name:'横向',key:'transverse'},
+                        {name:'成果奖',key:'achievement'},
+                        {name:'论文',key:'paper'},
+                        {name:'著作',key:'book'},
+                        {name:'专利',key:'invent'},
+                        {name:'平台',key:'scientific'},
+                        {name:'科技荣誉',key:'honor'},
+                        {name:'总分',key:'count'},
+                    ]},
+            ],//表头
+            title: "",
+            pageNum: 1,
+            pageSize: 10,
+            total: 0,
+        },updated() {
+            this.$nextTick(() => {
+                this.$refs.tableLabeldept.doLayout();
+            })
+        },
+        methods: {
+            queryInfo() {
+                var eid = localStorage.getItem("eid");
+                this.title = localStorage.getItem("title");
+                var params = new URLSearchParams();
+                params.append("eid", eid);
+                params.append("currentPage",this.pageNum);
+                params.append("currentSize",this.pageSize);
+                params.append("queryName",this.queryName);
+                axios.post("../e/findToAssInfo", params).then(res => {
+                    const data = res.data.data;
+                    let array = Object.values(data).filter(item => Array.isArray(item)).map(item => {
+                        return item.map(innerItem => {
+                            return {
+                                ...innerItem,
+                                academy: innerItem.academy === 1 ? '是' : '否',
+                                academyCare: innerItem.academyCare === 1 ? '是' : '否'
+                            };
+                        });
+                    });
+                    this.tableData = [];
+                    for (let i = 0; i <array.length ; i++) {
+                        for (let j = 0; j <array[i].length ; j++) {
+                            this.tableData.push(array[i][j]);
+                        }
+                    }
+                    //this.groupHandle(this.tableData);
+                    this.setdates();
+                })
+            },
+            //查total总数
+            queryInfoTotal(){
+                var eid = localStorage.getItem("eid");
+                var params = new URLSearchParams();
+                params.append("eid", eid);
+                params.append("queryName", this.queryName);
+                axios.post("../e/findToAssInfoTotal", params).then(res => {
+                    this.total = res.data.data;
+                })
+            },
+            //分页变化
+            handleSizeChange(pageSize) {
+                this.pageSize = pageSize;
+                this.queryInfo();
+            },
+            //分页变化
+            handleCurrentChange(pageNum) {
+                this.pageNum = pageNum;
+                this.queryInfo();
+            },objectSpanMethod({row, column, rowIndex, columnIndex}){
+                // 合并单元格
+                if (columnIndex === 0) {
+                    const _row = this.spanArr[rowIndex];
+                    const _col = _row > 0 ? 1 : 0;
+                    return {rowspan: _row, colspan: _col};
+                }
+            },setdates() {
+                // 计算要合并的单元格
+                let contactDot = 0;
+                this.spanArr = []
+                this.tableData.forEach((item, index) => {
+                    item.index = index;
+                    if (index === 0) {
+                        this.spanArr.push(1);
+                    } else {
+                        // 根据相同科室来合并
+                        if (item.tname === this.tableData[index - 1].tname) {
+                            this.spanArr[contactDot] += 1;
+                            this.spanArr.push(0);
+                        } else {
+                            contactDot = index;
+                            this.spanArr.push(1);
+                        }
+                    }
+                });
+            },groupHandle(Human) {
+                // 计算小计行插入位置
+                let doctorMap = {};
+                for (let i = 0; i < Human.length; i++) {
+                    //找出相同名称的行数
+                    let doctorName = Human[i].tname
+                    if (doctorMap[doctorName] !== undefined) {
+                        doctorMap[doctorName].push(i);
+                    } else {
+                        doctorMap[doctorName] = [i];
+                    }
+                }
+                let keyArr = [];
+                for (let k in doctorMap) {
+                    //取出key并倒序，防止正序插入会影响行下标
+                    keyArr.unshift(k);
+                }
+                keyArr.forEach((ele, index) => {
+                    let lastIndex = doctorMap[ele][doctorMap[ele].length - 1]; //找出相同名称最后一行插入合计数据
+                    let obj = this.xj(Human, ele) //计算出小计行数据
+                    Human.splice(lastIndex + 1, 0, obj) //插入
+                })
+            },xj(data, name) {
+                // 小计行计算
+                let obj = {
+                    tname: name , //科室名字，用于合并单元格
+                    nickname: '小计',edu:'',technical:'',academy:'',academy:'',academyCare:'',standard:'',
+                    achievement:0, book:0, direction:0, honor:0,
+                    invent:0, paper:0, scientific:0, transverse:0, count:0
+                }
+
+                data.forEach(item => {
+                    // 科室相同的加起来
+                    if (item.tname == name) {
+                        obj.achievement += (item.achievement ? parseFloat(item.achievement) : 0)
+                        obj.book += (item.book ? parseFloat(item.book) : 0)
+                        obj.direction += (item.direction ? parseFloat(item.direction) : 0)
+
+                        obj.honor += (item.honor ? parseFloat(item.honor) : 0)
+                        obj.invent += (item.invent ? parseFloat(item.invent) : 0)
+                        obj.paper += (item.paper ? parseFloat(item.paper) : 0)
+
+                        obj.scientific += (item.scientific ? parseFloat(item.scientific) : 0)
+                        obj.transverse += (item.transverse ? parseFloat(item.transverse) : 0)
+                        obj.count += (item.count ? parseFloat(item.count) : 0)
+                    }
+                })
+                return obj
+            },labeldeptTypeProjectCount(){
+                //统计各部门 各科技项目 获得的科技分
+                var eid = localStorage.getItem("eid");
+                var params = new URLSearchParams();
+                params.append("eid", eid);
+                axios.post("../e/fltpc", params).then(res => {
+                    if(res.data.code == 1){
+                        this.tableLabeldeptData = res.data.data;
+                    }else{
+                        this.$message({showClose: true, message: res.data.msg, type: 'warning'});
+                    }
+                })
+            },handelQuerInfo(){
+                //点击查询按钮
+                this.pageNum = 1;
+                this.queryInfo();
+                this.queryInfoTotal();
+            }
+        },
+        created(){
+            this.queryInfo();
+            this.queryInfoTotal();
+            this.labeldeptTypeProjectCount();
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/apply_header :: head"></head>
+<body>
+<div th:fragment="copytabs">
+    <el-tabs v-model="editableTabsValue" type="card" @tab-remove="removeTab" :before-leave="handleTabsEdit">
+        <el-tab-pane :key="item.name" v-for="(item, index) in editableTabs"
+                     :label="item.title" :name="item.name" closable>
+        </el-tab-pane>
+        <el-tab-pane key="add" name="add">
+            <span slot="label" style="padding: 8px;font-size:20px;font-weight:bold;">+</span>
+        </el-tab-pane>
+    </el-tabs>
+</div>
+</body>
+</html>

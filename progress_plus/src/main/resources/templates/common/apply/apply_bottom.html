@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div th:fragment="copybottom">
+    <h3 style="float: left;margin-left: 20px" v-html="applyPageName"></h3>
+    <div style="float: left;margin-left: 25px">
+        <el-checkbox  @change="handleCheckedCitiesChange" v-model="isChecked">我已填写全部信息并确保信息无误</el-checkbox>
+    </div>
+<!--    <div class="btntopart3">-->
+<!--        <el-popconfirm title="确定重置全部申请吗？" confirm-button-text='确定'-->
+<!--                       cancel-button-text='取消' @confirm="reall">-->
+<!--            <el-button type="warning" round slot="reference" plain>重置</el-button>-->
+<!--        </el-popconfirm>-->
+<!--    </div>-->
+    <transition name="el-zoom-in-bottom">
+        <div class="btntopart3" v-show="qr">
+            <el-popconfirm title="确定提交申请吗？" confirm-button-text='确定'
+                           cancel-button-text='取消' @confirm="commit" >
+                <el-button type="primary" round slot="reference">提交</el-button>
+            </el-popconfirm>
+        </div>
+    </transition>
+</div>
+</body>
+</html>

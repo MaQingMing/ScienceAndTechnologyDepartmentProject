@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div th:fragment="copyrecordAndfile">
+    <!--备案弹窗-->
+    <el-dialog title="备案详情" :visible.sync="detailVis" width="40%">
+       <!-- <div style="width: 100%;padding-bottom: 20px">
+            <el-row>
+                <el-col :span="24">
+                    <div class="beiantext">备案名称：<span style="color: #1C86EE">{{recorddata[0].name}}</span></div>
+                </el-col>
+                <el-col :span="24">
+                    <div class="beiantext">团队成员：<span>{{recorddata[2]}}</span></div>
+                </el-col>
+                <el-col :span="12">
+                    <div class="beiantext">申请时间：<span style="">{{recorddata[0].create_time | timesub}}</span></div>
+                </el-col>
+                <el-col :span="12">
+                    <div class="beiantext">备案状态：
+                        <span style="color: #67C23A" v-if="recorddata[0].status == 1">通过</span>
+                        <span style="color: #F56C6C" v-if="recorddata[0].status == 0">不通过</span>
+                    </div>
+                </el-col>
+                <el-col :span="24">
+                    <div class="beiantext">备案是否被使用：
+                        <span style="" v-if="recorddata[0].consume !=null">是</span>
+                        <span style="" v-else>是</span>
+                    </div>
+                </el-col>
+                <el-col :span="24">
+                    <div class="beiantext">备案描述/备注信息：
+                        <span style="line-height: 30px">{{recorddata[0].description}}</span>
+                    </div>
+                </el-col>
+            </el-row>
+            <div class="beiantext">备案附件：</div>
+            <div class="filelistdiv" style="height: 200px">
+                <div v-for="(file, index) in recorddata[1]" :key="index" class="file-item">
+                    <el-row style="margin: 10px 0px;" >
+                        <el-col :span="16" v-if="file.fileType == 'png'||file.fileType == 'jpg'">
+                            <el-link :underline="false" :href="'../'+file.path" target="_blank" style="float: left;">
+                                <img :src="'../'+file.path" style="width: 50px;padding-bottom: 8px;
+                                    margin-left: 10px;margin-top: 5px;cursor: pointer;">
+                            </el-link>
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 5px;color: rgba(64,64,64,0.6);font-weight: bold">{{ file.fileName }}</a></div>
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 10px;color: rgba(64,64,64,0.43);font-size: 10px">{{ file.fileSize }}KB</a></div>
+                        </el-col>
+                        <el-col :span="16" v-else>
+                            <img th:src="@{/images/filelistlogo.png}" style="width: 20px;padding-bottom: 8px;margin-left: 10px;margin-top: 5px;float: left">
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 5px;color: rgba(64,64,64,0.6);font-weight: bold">{{ file.fileName }}</a></div>
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 10px;color: rgba(64,64,64,0.43);font-size: 10px">{{ file.fileSize }}KB</a></div>
+                        </el-col>
+                        <el-col :span="8">
+                            <div style="float: right;">
+                                <el-link style="margin-top:7px;margin-right: 24px;font-size: 14px;font-weight: bold"
+                                         :underline="false" :download="file.fileName" :href="'../'+file.path" icon="el-icon-download">下载</el-link>
+                            </div>
+                        </el-col>
+                    </el-row>
+                </div>
+            </div>
+        </div>-->
+    </el-dialog>
+
+    <!--查看文件-->
+    <el-dialog :visible.sync="filedialog" width="45%">
+        <div style="width: 100%;height: 450px">
+            <div class="beiantext" style="width: 100%;text-align: center;margin-top: -10px;font-size: 18px;"><span>文件列表</span></div>
+            <div class="filelistdiv">
+                <div v-for="(file, index) in file_list" :key="index" class="file-item">
+                    <el-row style="margin: 10px 0px;" >
+                        <el-col :span="16" v-if="file.isShow == 1">
+                            <el-link :underline="false" :href="'../'+file.path" target="_blank" style="float: left;">
+                                <img :src="'../'+file.path" style="width: 50px;padding-bottom: 8px;
+                                    margin-left: 10px;margin-top: 5px;cursor: pointer;">
+                            </el-link>
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 5px;color: rgba(64,64,64,0.6);font-weight: bold">{{ file.fileName }}</a></div>
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 10px;color: rgba(64,64,64,0.43);font-size: 10px">{{ file.fileSize }}KB</a></div>
+                        </el-col>
+                        <el-col :span="16" v-else>
+                            <!--<img th:src="@{/images/filelistlogo.png}" style="width: 20px;padding-bottom: 8px;margin-left: 10px;margin-top: 5px;float: left">-->
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 5px;color: rgba(64,64,64,0.6);font-weight: bold">{{ file.fileName }}</a></div>
+                            <div style="margin-top: 6px;float: left"><a style="margin-left: 10px;color: rgba(64,64,64,0.43);font-size: 10px">{{ file.fileSize }}KB</a></div>
+                        </el-col>
+                        <el-col :span="8">
+                            <div style="float: right;">
+                                <el-link style="margin-top:7px;margin-right: 24px;font-size: 14px;font-weight: bold"
+                                         :underline="false" :download="file.fileName" :href="'../'+file.path" icon="el-icon-download">下载</el-link>
+                            </div>
+                        </el-col>
+                    </el-row>
+                </div>
+            </div>
+        </div>
+    </el-dialog>
+
+
+    <el-dialog title="纵向申报详情" :visible.sync="dialogdirectionVisible" top="3%" width="75%">
+        <el-descriptions border="true" size="medium">
+            <el-descriptions-item label="高校名称">{{ currentObject.school }}</el-descriptions-item>
+            <el-descriptions-item label="类型">{{ currentObject.type }}</el-descriptions-item>
+            <el-descriptions-item label="学科门类">{{ currentObject.subjectCategory }}</el-descriptions-item>
+            <el-descriptions-item label="立项年度">{{ currentObject.startProjectYear }}</el-descriptions-item>
+            <el-descriptions-item label="所属单位">{{ currentObject.belongUnit }}</el-descriptions-item>
+            <el-descriptions-item label="项目名称">{{ currentObject.name }}</el-descriptions-item>
+            <el-descriptions-item label="项目来源单位">{{ currentObject.dept }}</el-descriptions-item>
+            <el-descriptions-item label="项目类别">{{ currentObject.type }}</el-descriptions-item>
+            <el-descriptions-item label="项目负责人">{{ currentObject.username }}</el-descriptions-item>
+            <el-descriptions-item label="合同签订日期">{{ currentObject.signContractTime }}</el-descriptions-item>
+            <el-descriptions-item label="开始时间">{{ currentObject.startTime }}</el-descriptions-item>
+            <el-descriptions-item label="计划完成时间">{{ currentObject.planFinishTime }}</el-descriptions-item>
+            <el-descriptions-item label="项目编号">{{ currentObject.identifier }}</el-descriptions-item>
+            <el-descriptions-item label="总经费(万元)">{{ currentObject.totalFund }}</el-descriptions-item>
+            <el-descriptions-item label="到账总经费(万元)">{{ currentObject.receiptTotalFund }}</el-descriptions-item>
+            <el-descriptions-item label="合作形式">{{ currentObject.cooperationForm }}</el-descriptions-item>
+            <el-descriptions-item label="承担单位">{{ currentObject.bearUnit }}</el-descriptions-item>
+            <el-descriptions-item label="项目状态">{{ currentObject.projectStatus }}</el-descriptions-item>
+            <el-descriptions-item label="合同编号">{{ currentObject.contractNumber }}</el-descriptions-item>
+            <el-descriptions-item label="完成日期">{{ currentObject.completeTime }}</el-descriptions-item>
+            <el-descriptions-item label="项目成员">{{ currentObject.projectMembers }}</el-descriptions-item>
+            <el-descriptions-item label="学科分类">{{ currentObject.subjectType }}</el-descriptions-item>
+            <el-descriptions-item label="国民经济行业分类">{{ currentObject.nationalEconomyCategory }}</el-descriptions-item>
+        </el-descriptions>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" type="primary" @click="dialogdirectionVisible = false">取 消</el-button>
+        </span>
+    </el-dialog>
+
+
+    <el-dialog title="横向申报详情" :visible.sync="dialogTransverseVisible" top="3%" width="75%">
+        <el-descriptions border="true" size="medium">
+            <el-descriptions-item label="高校名称">{{ currentObject.school }}</el-descriptions-item>
+            <!--<el-descriptions-item label="类型">{{ currentObject.type }}</el-descriptions-item>-->
+            <el-descriptions-item label="学科门类">{{ currentObject.subjectCategory }}</el-descriptions-item>
+            <el-descriptions-item label="立项年度">{{ currentObject.startProjectYear }}</el-descriptions-item>
+            <el-descriptions-item label="所属单位">{{ currentObject.belongUnit }}</el-descriptions-item>
+            <el-descriptions-item label="项目名称">{{ currentObject.name }}</el-descriptions-item>
+            <el-descriptions-item label="项目来源单位">{{ currentObject.dept }}</el-descriptions-item>
+            <el-descriptions-item label="项目类别">{{ currentObject.level }}</el-descriptions-item>
+            <el-descriptions-item label="项目负责人">{{ currentObject.username }}</el-descriptions-item>
+            <el-descriptions-item label="合同签订日期">{{ currentObject.signContractTime }}</el-descriptions-item>
+            <el-descriptions-item label="开始时间">{{ currentObject.startTime }}</el-descriptions-item>
+            <el-descriptions-item label="计划完成时间">{{ currentObject.planFinishTime }}</el-descriptions-item>
+            <el-descriptions-item label="项目编号">{{ currentObject.identifier }}</el-descriptions-item>
+            <el-descriptions-item label="总经费(万元)">{{ currentObject.totalFund }}</el-descriptions-item>
+            <el-descriptions-item label="到账总经费(万元)">{{ currentObject.receiptTotalFund }}</el-descriptions-item>
+            <el-descriptions-item label="合作形式">{{ currentObject.cooperationForm }}</el-descriptions-item>
+            <el-descriptions-item label="承担单位">{{ currentObject.bearUnit }}</el-descriptions-item>
+            <el-descriptions-item label="项目状态">{{ currentObject.projectStatus }}</el-descriptions-item>
+            <el-descriptions-item label="合同编号">{{ currentObject.contractNumber }}</el-descriptions-item>
+            <el-descriptions-item label="完成日期">{{ currentObject.completeTime }}</el-descriptions-item>
+            <el-descriptions-item label="项目成员">{{ currentObject.projectMembers }}</el-descriptions-item>
+            <el-descriptions-item label="学科分类">{{ currentObject.subjectType }}</el-descriptions-item>
+            <el-descriptions-item label="国民经济行业分类">{{ currentObject.nationalEconomyCategory }}</el-descriptions-item>
+        </el-descriptions>
+
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" type="primary" @click="dialogTransverseVisible = false">取 消</el-button>
+        </span>
+    </el-dialog>
+
+
+    <!--顶部标签页-->
+    <div class="toptab">
+        <div class="toptab-child">
+            <el-tabs v-model="activeName" @tab-click="handleClick">
+                <el-tab-pane :label="type.split(',')[0]" :name="type.split(',')[0]" v-for="(type,index) in scienceType" >
+                    <span slot="label">
+                        {{type.split(',')[0]}}
+                        <el-badge v-if="type.split(',')[2]>0 && isBadge " :value="type.split(',')[2]" max="99" ></el-badge>
+                    </span>
+                </el-tab-pane>
+            </el-tabs>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.BaseScoreMapper">
+     <select id="selectByPage" resultType="com.yc.apply.entity.BaseScore">
+        select * from base_score ${ew.customSqlSegment}
+    </select>
+
+    <!-- 添加科技荣誉项目 -->
+    <insert id="addHonor">
+        insert into honor_standard (leid, score, remarks, status, posit, trid)
+            values(#{leid}, #{score}, #{remarks}, #{status}, #{posit}, #{trid})
+    </insert>
+
+    <!-- 查询科技荣誉 -->
+    <select id="selectHonor" resultType="com.yc.vo.EditProject">
+        select h.hsid id, l.lname, l.leid, h.score, h.remarks, h.posit, h.status from honor_standard h, tech_results_level l
+            where h.leid = l.leid
+    </select>
+
+    <!-- 修改科技荣誉项目 -->
+    <update id="updateHonor">
+        update honor_standard set
+            leid = #{leid}, score = #{score}, remarks = #{remarks}, status = #{status}, posit = #{posit}, trid = #{trid}
+                where hsid = #{id}
+    </update>
+</mapper>

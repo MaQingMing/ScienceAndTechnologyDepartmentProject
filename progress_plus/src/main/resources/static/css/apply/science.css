@@ -1,0 +1,45 @@
+.detail-common {display: flex;justify-content: space-between;}
+.file-item{width: 98%;border-radius: 12px;margin-left: 1%}
+.file-item:hover{background-color: rgba(145, 145, 149, 0.13);box-shadow: 0px 0px 5px 0px rgba(156, 156, 156, 0.4);}
+.filelistdiv {height: 400px;overflow-y: scroll;}
+.el-table__body-wrapper is-scrolling-none::-webkit-scrollbar{width:8px}
+.el-table__body-wrapper is-scrolling-none::-webkit-scrollbar-thumb{background-color:#787878;border-radius:20px}
+.el-table__body-wrapper is-scrolling-none::-webkit-scrollbar-track{background-color:#fff}
+.el-table--scrollable-y .el-table__body-wrapper::-webkit-scrollbar{width:8px}
+.el-table--scrollable-y .el-table__body-wrapper::-webkit-scrollbar-thumb{background-color:#787878;border-radius:20px}
+.el-table--scrollable-y .el-table__body-wrapper::-webkit-scrollbar-track{background-color:#fff}
+.filelistdiv::-webkit-scrollbar{width:8px}
+.filelistdiv::-webkit-scrollbar-thumb{background-color:#787878;border-radius:20px}
+.filelistdiv::-webkit-scrollbar-track{background-color:#fff}
+.beiantext {text-align: left;font-weight: bold;padding-bottom: 10px;}
+.beiantext span {color: rgb(0, 0, 0)}
+.cardtextstyle2:hover, .cardtextstyle span:hover {color: #1C86EE}
+.cardtextstyle2 {height: 200px;line-height: 200px;font-weight: bold;font-size: 23px;cursor: pointer;}
+.cardtextstyle {font-weight: bold;margin-top: 10px;color: #7b7b7b;cursor: pointer;padding-bottom: 10px}
+.applyhistorycard {width: 99%;background-color: white;border-radius: 20px;box-shadow: 0px 0px 5px 0 rgba(0, 0, 0, 0.1);margin-top: 10px;margin-bottom: 10px}
+.topss {width: 98%;margin-top: 5px;float: left;background-color: white;margin-left: 1%;height: 60px;border-radius: 10px;box-shadow: 0px 0px 5px 0px rgba(156, 156, 156, 0.4);}
+.topinput1 {width: 35%;margin-top: 13px;margin-left: 10px}
+.toptab {background-color: white;width: 98%;margin-top: -10px;border-radius: 10px;float: left;margin-left: 1%;height: 10%;box-shadow: 0px 0px 5px 0px rgba(156, 156, 156, 0.4);}
+.toptab:hover, .topss:hover, .centertable:hover {box-shadow: 0px 0px 10px 0px rgba(156, 156, 156, 0.58);}
+.toptab-child {width: 78%;margin-left: 11%;margin-top: 0px}
+.centertable {width: 98%;margin-left: 1%;background-color: white;border-radius: 15px;box-shadow: 0px 0px 5px 0px rgba(156, 156, 156, 0.4);}
+.el-tabs__item,.el-step.is-simple .el-step__title {font-weight: bold;}
+.el-input__inner, .el-tooltip__popper, .el-pagination .el-select .el-input .el-input__inner {border-radius: 15px;}
+.el-input--small .el-input__inner {height: 35px;}
+.el-select-dropdown, .el-dialog ,.el-message,.el-popover{border-radius: 10px}
+.el-tooltip__popper.is-dark {backdrop-filter: blur(5px); /* 设置高斯模糊效果*/background-color: rgba(52, 52, 52, 0.5);}
+.el-button--mini, .el-button--small {border-radius: 16px;font-size: 13px;}
+.el-dialog__title {font-weight: bold;font-size: 15px;color: #535353;}
+.el-dialog__body {padding: 0px 20px}
+.el-steps--simple{border-radius: 20px}
+.el-popover{border: none;padding: 0px 10px 10px 10px}
+.el-table{border-radius: 15px;}
+.block{margin-top: 5px;margin-bottom: 5px;}
+.cardtextstyle span{color: #000000;}
+.teamlist::-webkit-scrollbar{width:8px}
+.teamlist::-webkit-scrollbar-thumb{background-color:#787878;border-radius:20px}
+.teamlist::-webkit-scrollbar-track{background-color:#fff}
+.surround{border: 1px dashed #606266;padding: 5px 0px;border-radius:5px;margin-bottom: 10px;}
+.bottomborder{border-bottom: 1px dashed #606266;padding: 0px 5px;}
+.separate{padding: 0px 5px;}
+html{overflow: hidden}

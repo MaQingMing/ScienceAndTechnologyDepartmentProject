@@ -1,0 +1,75 @@
+server:
+  port: 80 #端口
+  servlet:
+    session:
+      timeout: 60m # 超 时 时 间
+    context-path: /hnitkj
+
+spring:
+  profiles:
+    active: dev # 启动时使用的配置文件
+  session:
+    timeout: 60m
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+  mvc:
+    hiddenmethod:
+      filter:
+        enabled: true
+  servlet:
+    multipart:
+      max-file-size: 20MB  #文件上传  最大文件大小
+      max-request-size: 20MB #最大请求大小
+  jackson:
+    default-property-inclusion: non_null #设置返回前段 只包含非空属性
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true #是否开启自动驼峰命名规则（camel case）映射
+    cache-enabled: false #关闭缓存
+    local-cache-scope: statement #设置一级缓存的作用范围是一条sql语句执行期间，执行完毕清空一级缓存# xml 保存位置
+  mapper-locations:
+    - classpath:mapper/*.xml
+    - classpath:mapper/apply/*.xml
+    - classpath:mapper/standard/*.xml
+
+yc:
+  # 权 限 配 置
+  security:
+    # 开 启 超 级 管 理 员 账 号 -- 不需要验证权限
+    super-auth-open: true
+    # 超 级 管 理 员 账 号 -- 不需要验证权限
+    super-admin: admin
+    # 允 许 同 一 账 号 多 端 登 录 个 数
+    maximum: 1
+    # 记 住 密 码
+    remember-key: PEAR_REMEMBER
+    # 不 需 要 权 限 拦 截 的 接 口 配 置
+    open-api:
+      - /**/login  # 开放登录接口
+      - /**/loginout
+      - /**/nologin
+      - /**/otherlogin
+      - /images/** # 开放静态资源
+      - /js/** # 开放静态资源
+      - /css/** # 开放静态资源
+  # 忽略鉴权url
+  ignored:
+    urls:
+      - /**/login
+      - /**/loginout
+      - /**/nologin
+      - /**/otherlogin
+      - /js/**
+      - /css/**
+      - /images/**
+      - /**/*.png
+      - /**/*.jpg
+      - /**/*.ico
+      - /**/*.js
+      - /**/*.css
+  backup: #数据库备份配置
+    max-age: 28d # 备份文件最多保留时间。如，5分钟：5m、12小时：12h、1天：1d

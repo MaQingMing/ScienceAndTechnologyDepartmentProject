@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<!-- 主界面  -->
+<style type="text/css">
+    .el-menu-item:hover{background-color: #3399cc!important;}
+    .el-main {margin: 5px;padding: 0;overflow: hidden;}
+    .iframe {border: none;width: 100%;}
+    .footer{text-align: center;padding-bottom: 6px;}
+    .el-menu-item, .el-submenu__title{height: 40px;line-height: 40px;}
+    .el-menu-item {background-color: rgba(0, 0, 0, 0.1);}
+    .el-menu-item.is-active {background: #3399cc !important;}
+    .el-icon-handle-round {background:url("../../static/images/handle-round.png")  center center no-repeat;background-size: 16px;height: 24px;color: #fff;}
+</style>
+<body style="min-width: 1200px;">
+<div id="wrapper" v-cloak>
+    <el-container>
+        <el-aside :width="isCollapse ? '64px' : '180px'" style="background-color:#091B2A; transition:width .5s; ">
+            <div style="background-color: #104c95; height: 50px; line-height: 50px; text-align: center; font-size: 20px;">
+                <transition name="el-fade-in-linear">
+                    <span name="fade" v-show="!isCollapse">
+                        <a style="font-weight: 600;color: #FFFFFF;" href="frame">湖南工学院</a>
+                    </span>
+                </transition>
+            </div>
+            <!-- 菜单  -->
+            <el-menu style="border: none;" background-color="#091B2A" text-color="#fff" active-text-color="#fff"
+                     :default-active="src" @select="handleSelect" :collapse="isCollapse">
+                <el-menu-item index="index">
+                    <i class="el-icon-data-line"></i>
+                    <span slot="title">首页</span>
+                </el-menu-item>
+                <el-menu-item :index="item.path" v-for="item in permissionList">
+                    <i :class=`el-icon-${item.icon}`></i>
+                    <span slot="title">{{item.name}}</span>
+                </el-menu-item>
+<!--                <el-submenu index="1">-->
+<!--                    <template slot="title">-->
+<!--                        <i class="el-icon-circle-plus"></i>-->
+<!--                        <span>科技成果申请</span>-->
+<!--                    </template>-->
+<!--                    <el-menu-item-group>-->
+<!--                        <el-menu-item :index="item.path" style="height: 40px;line-height: 40px;margin-left: -14px;" v-for="item in applicationurlList">-->
+<!--                            <i class="el-icon-handle-round"></i>{{item.name}}</el-menu-item>-->
+<!--                    </el-menu-item-group>-->
+<!--                </el-submenu>-->
+            </el-menu>
+        </el-aside>
+
+        <el-container>
+            <el-header style="background-color: #104c95;height: 50px; line-height: 50px; color: white;">
+                <el-row>
+                    <el-col :span="1" style="float: left; padding-top: 3px;">
+                        <i style="font-size: 22px; cursor: pointer" :class="[isCollapse ? 'el-icon-s-unfold' : 'el-icon-s-fold']" @click="handleCollapse"></i>
+                    </el-col>
+                    <el-col :span="4">
+                        <a style="font-size: 15px;font-weight: 600;color: #FFFFFF;" href="frame">科技成果申报服务平台</a>
+                    </el-col>
+                    <div style="text-align: right ;display: flex;float: right">
+                        <span style="color: white; margin-right: 10px">{{this.udNameOption[0]}}
+                            <el-tooltip class="item" effect="light" :content="tname" placement="bottom">
+                                <span>{{tname | subString}}</span>
+                            </el-tooltip>&nbsp;&nbsp;{{user.nickname}}
+                        </span>
+                        <el-dropdown>
+                            <img th:src="@{../images/hugon.jpg}" style="width: 35px; height: 35px; margin-right: 10px; border-radius: 50%">
+                            <el-dropdown-menu slot="dropdown" style="color: black; cursor: pointer; text-align: center;">
+                                <span @click="dialogFormVisible = true" style="display:block; width: 100px; ">个人信息</span>
+                                <span   @click="changeIndex('updatePassword')" style="display:block; padding: 10px 0; width: 100px; ">修改密码</span>
+                                <span @click="logout" style="display:block; width: 100px;  ">退出</span>
+                            </el-dropdown-menu>
+                        </el-dropdown>
+                    </div>
+                </el-row>
+            </el-header>
+            <!-- 主体区域 -->
+            <el-main>
+                <iframe id="myiframe" name="mainFrame" style="width: 100%;height: 100%;"  :src="handleUrl(src)"
+                        frameborder="0" :style="{'height':iframeHeight}" scrolling="auto"></iframe>
+            </el-main>
+            <!--<div class="footer">
+                <img th:src="@{images/favicon.ico}" style="display:inline-block; vertical-align:middle;margin-left: 10px;" width="18" height="18">
+                <a href="https://www.hnit.edu.cn/" style="text-decoration: none;color: #000000;" target="view_window"><b>湖南工学院</b></a>
+            </div>-->
+        </el-container>
+    </el-container>
+
+    <!--个人信息弹窗-->
+    <el-dialog title="用户信息" :visible.sync="dialogFormVisible" width="40%">
+        <el-form>
+            <el-form-item label="工号" label-width="100px">
+                <el-input v-model="user.username" :disabled="true" autocomplete="off" onfocus=this.blur()  style="width: 80%"></el-input>
+            </el-form-item>
+            <el-form-item label="姓名" label-width="100px">
+                <el-input v-model="user.nickname" :disabled="true" autocomplete="off" onfocus=this.blur()  style="width: 80%"></el-input>
+            </el-form-item>
+
+            <el-form-item label="电话号码" label-width="100px">
+                <el-input v-model="user.phone" :disabled="true"  autocomplete="off" onfocus=this.blur() style="width: 80%"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <el-dialog title="系统提示" :visible.sync="dialogVisible" :close-on-press-escape="false"
+               :close-on-click-modal="false" :show-close="false" width="45%">
+        <span style="font-size: 16px;color: red;">系统检测到你使用的是初始密码，为了保证账号的安全，请先修改你的密码!</span>
+        <el-form>
+            <el-form-item label="原密码" label-width="100px">
+                <el-input style="width: 80%;" type="password" placeholder="原密码" v-model="userInfo.OldPassword"></el-input>
+            </el-form-item>
+            <el-form-item label="新密码" label-width="100px">
+                <el-input style="width: 80%;" type="password" placeholder="新密码" v-model="userInfo.NewPassword"></el-input>
+            </el-form-item>
+            <el-form-item label="确认密码" label-width="100px">
+                <el-input style="width: 80%;" type="password" placeholder="确认密码" v-model="userInfo.APassword"></el-input>
+            </el-form-item>
+        </el-form>
+        <p style="font-size: 14px;text-align: center;">以字母开头,长度在8~18之间,包含字母、数字和特殊符号</p>
+        <div style="text-align: center;margin-top: 30px;">
+            <el-button type="primary" @click="updatePassword" size="small">修 改 密 码</el-button>
+            <el-button type="danger" @click="logout" size="small">退 出 登 录</el-button>
+        </div>
+    </el-dialog>
+</div>
+<script>
+    function call() {
+        vm.user = JSON.parse(sessionStorage.getItem("user"))
+    }
+
+    function changeIndex(index) {
+        vm.src = index
+        window.setInterval("reinitIframe()", 50);
+    }
+
+    // 实现 iframe  高度自适应
+    function reinitIframe() {
+        const iframe = document.getElementById("myiframe");
+        try {
+            const bHeight = iframe.contentWindow.document.body.scrollHeight;
+            const dHeight = iframe.contentWindow.document.documentElement.scrollHeight;
+            iframe.height = Math.max(bHeight, dHeight, (window.innerHeight - 105));
+        } catch (ex) {
+        }
+    }
+    window.setInterval("reinitIframe()", 50);
+
+    let vm = new Vue({
+        el: "#wrapper",
+        data: {
+            applicationurlList:[],
+            permissionList:[],//用户权限
+            src: 'admin_back/index',
+            active: 0,
+            user: {},
+            isCollapse: false,
+            dialogFormVisible: false,
+            //旧密码
+            OldPassword:"",
+            //新密码
+            NewPassword:"",
+            //确认密码
+            APassword:"",
+            //学院名或部门名
+            udNameOption:"",
+            iframeHeight: document.documentElement.clientHeight - 41 - 25 + "px",
+            urlType: Math.random() * 10,
+            dialogVisible:false,
+            userInfo:{
+                OldPassword:"",
+                NewPassword:"",
+                APassword:""
+            }
+        },
+        created() {
+            var user = sessionStorage.getItem("user") ? JSON.parse(sessionStorage.getItem("user")) : {};
+            this.user=user.user
+            this.tname=user.tname
+            this.selectDeptNameByUdid();
+        },
+        filters:{
+            subString(value){
+                return value.substring(0,10);
+            }
+        },
+        methods: {
+            //查询用户所在学院或者部门
+            selectDeptNameByUdid() {
+                /*if (typeof (this.user.tid) !="undefined" && this.user.tid != null){
+                    $.ajax({
+                        url:"../api/user/selectDeptNameByTid/" + this.user.tid, type: "get",
+                        contentType: "application/json"
+                    }).then(res => {
+                        if (res.code == 1) {
+                            this.udNameOption = res.data;
+                        }
+                    })
+                }else */
+                if (typeof (this.user.udid) !="undefined" && this.user.udid != null){
+                    $.ajax({url:"../classManage/selectDeptNameByUdid/" + this.user.udid, type: "get",
+                        contentType: "application/json"
+                    }).then(res => {
+                        if (res.code == 1) {
+                            this.udNameOption = res.data;
+                        }
+                    })
+                }
+            },
+            //跳转到修改密码页面
+            toup(){
+                location.href="updatePassword";
+            },
+            handleSelect(key) {
+                this.src = key;
+                window.setInterval("reinitIframe()", 50);
+            },
+            handleCollapse() {
+                this.isCollapse = !this.isCollapse;
+            },
+            logout() {
+                $.get("../logout");
+                this.$message({message: '注销成功,稍后跳转!', type: 'success'});
+                sessionStorage.removeItem("user");
+                location.href = "../login";
+            },
+            // getServerTime(){
+            //     axios.get("governuser/get/time").then(response => {
+            //     location.href = "../login";
+            // },
+            getServerTime(){
+                axios.get("../governuser/get/time").then(response => {
+                    if (response.data.code == 0) {
+                        this.$message({message: response.data.msg, type: 'warning'});
+                        setTimeout(()=>{
+                            $.get("../logout");
+                            sessionStorage.removeItem("user");
+                            location.href = "../login";
+                        },3000);
+                    }
+                })
+            },
+            checkPassword(){
+                //检查是否是初始密码
+                let _this = this;
+                axios.get("../api/user/checkPassword").then(res => {
+                    if (res.data.code === "0") {
+                        if(res.data.data == 1){
+                            _this.dialogVisible = true;
+                        }
+                    }
+                })
+            },
+            updatePassword(){
+                //修改密码
+                let _this = this;
+                _this.userInfo.username = JSON.parse(sessionStorage.getItem("user")).username;
+                if (!_this.userInfo.OldPassword) {
+                    this.$message({message: "请输入旧密码再提交!", type: "error"});
+                    return;
+                }
+                if (!_this.userInfo.NewPassword) {
+                    this.$message({message: "请输入新密码再提交!", type: "error"});
+                    return;
+                }
+                if (!_this.userInfo.APassword) {
+                    this.$message({message: "请输入确认密码再提交!", type: "error"});
+                    return;
+                }
+
+                var pat = /^[a-zA-Z][a-zA-Z0-9_!@#$%^&*()-+=,.]{5,17}$/;
+                if (!pat.test(_this.userInfo.NewPassword)) {
+                    this.$message({message: "以字母开头,长度在8~18之间,包含字母、数字和特殊符号!", type: "error"});
+                    return;
+                }
+                if (_this.userInfo.NewPassword.length<8) {
+                    this.$message({message: "新密码长度不能小于8位!", type: "error"});
+                    return;
+                }
+
+                if (_this.userInfo.APassword != _this.userInfo.NewPassword) {
+                    this.$message({message: "两次输入密码不一致!", type: "error"});
+                    return;
+                }
+
+                let params = new URLSearchParams();
+                params.append("username", _this.userInfo.username);
+                params.append("password", _this.userInfo.OldPassword);
+                return axios.post("../api/user/compare", params).then(res => {
+                    if (res.data.code == 0) {
+                        this.$message({message: "旧密码错误，请重新输入!", type: "error"});
+                        return;
+                    }else if (res.data.code == 1){
+                        if (_this.userInfo.APassword == _this.userInfo.NewPassword) {
+                            let params = new URLSearchParams();
+                            params.append("username", _this.userInfo.username);
+                            params.append("password", _this.userInfo.NewPassword);
+                            return axios.post("../api/user/updatePassword", params).then(res => {
+                                if (res.data.code == 1) {
+                                    this.$message({message: "修改密码成功，3秒后跳转到登录页面!", type: "success"});
+                                    setTimeout(()=>{
+                                        $.get("../api/user/logout");
+                                        sessionStorage.removeItem("user");
+                                        location.href = "../login";
+                                    },3000);
+                                }else{
+                                    this.$message({message: "修改失败请稍后再试!", type: "error"});
+                                }
+                            });
+                        }else{
+                            this.$message({message: "两次输入密码不一致!", type: "error"});
+                            return;
+                        }
+                    }else{
+                        this.$message({message: res.data.msg, type: "error"});
+                        return;
+                    }
+                });
+            },
+            // handleUrl(url){
+            //     return url + "?urlType="+ this.urlType;
+            // },
+            // getUserRoles(){
+            // },
+            handleUrl(url){
+                return "../"+url + "?urlType="+ this.urlType;
+            },
+            getUserRoles(){
+                let _this = this;
+                axios.get("../api/permission/getUserRoles").then(res => {
+                    if (res.data.code == 1) {
+                        _this.permissionList = [];
+                        for (let i = 0; i <res.data.data.length ; i++) {
+                            /*let index = res.data.data[i].path.indexOf("/")
+                            if (res.data.data[i].path.substring(0, index) == "project_application"){
+                                _this.applicationurlList.push(res.data.data[i]);
+                            }else{
+                                _this.permissionList.push(res.data.data[i]);
+                            }*/
+                            _this.permissionList.push(res.data.data[i]);
+                        }
+                    }
+                })
+            }
+        },
+        mounted: function () {
+            this.getServerTime();
+            this.getUserRoles();
+        }
+    })
+
+    /**
+     * 获取url参数
+     * @param name
+     * @returns {string|null}
+     */
+    function getUrlParamValue(name) {
+        if (name == null || name === 'undefined') {
+            return '';
+        }
+        let searchStr = decodeURI(location.search);
+        let infoIndex = searchStr.indexOf(name + "=");
+        if (infoIndex === -1) {
+            return null;
+        }
+        let searchInfo = searchStr.substring(infoIndex + name.length + 1);
+        let tagIndex = searchInfo.indexOf("&");
+        if (tagIndex !== -1) {
+            searchInfo = searchInfo.substring(0, tagIndex);
+        }
+        return searchInfo;
+    }
+</script>
+</body>
+</html>

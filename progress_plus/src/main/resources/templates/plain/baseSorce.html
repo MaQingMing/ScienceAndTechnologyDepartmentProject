@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<body>
+<div id="wrapper" v-cloak style="margin: 10px 0px">
+	<div>
+		<el-input size="small" style="width: 20%;margin: 5px 5px;" suffix-icon="el-icon-search" placeholder="请输入工号或姓名搜索"></el-input>
+
+		<el-button size="small" @click="search" type="primary" style="margin: 10px 10px">查询</el-button>
+		<el-button size="small" @click="add" type="primary" style="margin: 10px 0">新增</el-button>
+		<!--<el-button size="small" type="primary" @click="[sedialogFormVisible = true]" style="margin: 0px 10px">批量添加</el-button>-->
+
+		<yc-upload style="display: inline;margin-left: 10px" :upload-data="null" button-name="批量添加,批量添加系统用户" :is-multiple="true"
+				   :access-size="1024*1024*8" access-type=".zip,.ppt"
+				   action-url="https://jsonplaceholder.typicode.com/posts/"></yc-upload>
+
+		<!-- 表格内容部分 -->
+		<div>
+			<el-table :data="tableData" style="width: 100%;margin: 20px 0px;" row-key="id" border
+			          default-expand-all :tree-props="{children: 'children', hasChildren: 'hasChildren'}">
+				<el-table-column prop="ID" label="ID" sortable width="110"></el-table-column>
+				<el-table-column prop="Sysid" label="工号" width="225"></el-table-column>
+				<el-table-column prop="Name" label="姓名" width="240"></el-table-column>
+				<el-table-column prop="Jobs" label="职位和学位" width="300"></el-table-column>
+				<el-table-column prop="BaseSorce" label="底分(数字)" width="220"></el-table-column>
+				<el-table-column prop="Status" label="状态" width="180"></el-table-column>
+			</el-table>
+
+			<!--分页-->
+			<div class="block">
+				<el-pagination
+						@size-change="handleSizeChange"
+						@current-change="handleCurrentChange"
+						:current-page="currentPage4"
+						:page-sizes="[10, 20, 30, 40]"
+						:page-size="10"
+						layout="total, sizes, prev, pager, next, jumper"
+						:total="50">
+				</el-pagination>
+			</div>
+		</div>
+
+		<!-- 弹出框 -->
+		<!-- 新增 -->
+		<el-dialog title="新增信息" :visible.sync="dialogFormVisible" style="width: 80%;margin: 0px auto;">
+			<el-form :model="form">
+				<el-form-item label="工号" style="margin-left: 60px;">
+					<el-input v-model="form.sysid" autocomplete="off" style="width: 75%"></el-input>
+				</el-form-item>
+				<el-form-item label="姓名" style="margin-left: 60px;">
+					<el-input v-model="form.name" autocomplete="off" style="width: 75%"></el-input>
+				</el-form-item>
+				<el-form-item label="职位和学位" style="margin-left: 60px;">
+					<div class="block">
+						<el-cascader v-model="form.jobs" style="width: 65%"
+						             :options="options"
+						             :props="{ multiple: true, checkStrictly: true }"
+						             clearable></el-cascader>
+					</div>
+				</el-form-item>
+				<el-form-item label="底分" style="margin-left: 60px;">
+					<el-input v-model="form.basesorce" autocomplete="off" style="width: 75%"></el-input>
+				</el-form-item>
+			</el-form>
+			<div slot="footer" class="dialog-footer">
+				<el-button @click="cancel">取 消</el-button>
+				<el-button type="primary" @click="saveAdd">增 加</el-button>
+			</div>
+		</el-dialog>
+
+		<!-- 批量上传 -->
+		<el-dialog title="批量添加系统用户" :visible.sync="sedialogFormVisible" width="35%" height="110%">
+			<el-form style="display: inline-block;margin-left: 30px">
+				<el-upload class="upload-demo" r>
+					<el-button size="small" slot="trigger" type="primary">选择文件</el-button>
+					<div slot="tip" style="color: red;margin-top: 20px;">请上传文件大小不超过2MB,格式为 .xls类型的文件
+					</div>
+					<div slot="tip" style="color: red;">请先下载模板文件填写再上传，且一次只能上传一个文件。</div>
+				</el-upload>
+			</el-form>
+			<div slot="footer" class="dialog-footer" style="text-align: center;">
+				<el-button size="small" type="primary" @click="submitUploadList">确 定</el-button>
+				<el-button size="small" @click="cancel">取 消</el-button>
+			</div>
+		</el-dialog>
+	</div>
+
+</div>
+
+<script type="text/javascript" th:src="@{/js/tinymce/tinymce.min.js}"></script>
+<script type="text/javascript" th:src="@{/js/ycUpload.js}"></script>
+<script type="text/javascript">
+	let v = new Vue({
+		el: "#wrapper",
+		data: {
+			tableData: [{
+				ID: 1,
+				Sysid: 20231031,
+				Name: '小谢',
+				Jobs: '副教授/硕士',
+				BaseSorce: '3000',
+				Status: 1
+			}, {
+				ID: 2,
+				Sysid: 20231032,
+				Name: '小肖',
+				Jobs: '教授/硕士',
+				BaseSorce: '5500',
+				Status: 1
+			},],
+			dialogFormVisible: false,
+			sedialogFormVisible: false,
+			dialogVisible: false,
+			form: {
+				sysid: null,
+				name: '',
+				jobs: '',
+				basesorce: '',
+			},
+			value: [],
+			options: [{
+				value: 'zhiwei',
+				label: '职位',
+				children: [{
+					value: 'jiaoshou',
+					label: '教授',
+				}, {
+					value: 'fujiaoshou',
+					label: '副教授',
+				}, {
+					value: 'yuanzhang',
+					label: '院长',
+				}, {
+					value: 'putonglaoshi',
+					label: '普通老师',
+				},],
+			}, {
+				value: 'xuewei',
+				label: '学位',
+				children: [{
+					value: 'boshihou',
+					label: '博士后',
+				}, {
+					value: 'boshi',
+					label: '博士',
+				}, {
+					value: 'shoushi',
+					label: '硕士',
+				}, {
+					value: 'benke',
+					label: '本科',
+				},],
+			},],
+			currentPage4: 1,
+
+		},
+		methods: {
+			add() {
+				this.dialogFormVisible = true;
+				console.log(this.dialogFormVisible);
+			},
+			cancel() {
+				this.dialogFormVisible = false;
+				this.sedialogFormVisible = false;
+			},
+			saveAdd() {
+				this.dialogFormVisible = false;
+			},
+			submitUploadList() {
+
+			},
+			search() {
+
+			},
+			handleChange(value) {
+				console.log(value);
+			},
+			handleSizeChange(val) {
+				console.log(`每页 ${val} 条`);
+			},
+			handleCurrentChange(val) {
+				console.log(`当前页: ${val}`);
+			},
+		}
+	})
+</script>
+
+</body>
+
+
+</html>

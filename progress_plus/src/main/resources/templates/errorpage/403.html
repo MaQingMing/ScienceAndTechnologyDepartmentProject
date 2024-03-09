@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<body style="background-color: #ffffff;">
+<div id="nologin" style="width: 199px;margin: 0 auto;margin-top: 5%;">
+    <img th:src="@{images/error.svg}"/>
+    <a id="goto_index" style="display: none;" href="login"> </a>
+    <p style="font-size:28px;text-align: center;margin-top: 10px;">抱歉，你无权访问该页面</p>
+    <p style="text-align: center;margin-top: 10px;">页面将在 <b id="wait">3</b> 秒后自动跳转</p>
+    <p style="text-align: center;margin-top: 10px;"><el-button type="danger" @click="handleLogin" round plain>立 即 跳 转</el-button></p>
+</div>
+<script type="text/javascript">
+    $(function () {
+        var wait = document.getElementById('wait');
+        var interval = setInterval(function () {
+            var time = --wait.innerHTML;
+            if (time <= 0) {
+                clearInterval(interval);
+                document.getElementById("goto_index").click();
+            }
+        }, 1000);
+    });
+    let nologinApp = new Vue({
+        el: "#nologin",
+        data: {
+        }, methods: {
+            handleLogin(){
+                //前往登录
+                location.href = "login";
+            }
+        }
+    })
+</script>
+</body>
+</html>

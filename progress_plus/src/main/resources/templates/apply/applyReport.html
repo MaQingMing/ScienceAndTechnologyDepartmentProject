@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<style type="text/css">
+    .clearfix:before, .clearfix:after {display: table;content: "";}
+    .clearfix:after {clear: both}
+    .box-card1 {width: 98%;}
+    .el-card__header{padding: 10px;}
+</style>
+<body>
+<div id="app" v-cloak>
+    <div style="width: 25%;height: 400px;display: inline-block;margin: 1% 1% 0 1%;">
+        <el-card shadow="always" class="box-card1" style="float: left;margin-bottom:8%;"
+                 :key="index" v-for="(item,index)  in dataLine">
+            <div slot="header"  class="clearfix">
+                <span style="margin-left: 3%;float: left;"><b v-html="">{{item.title}}</b></span>
+                <span>
+                    <el-tag  style="margin-left: 25%;float: right;" size="small" effect="dark">总量</el-tag>
+                </span>
+            </div>
+            <div class="text item">
+                <span style="margin-left: 3%;font-size: 20px;"><b>{{item.sum}}</b></span> 条
+            </div>
+        </el-card>
+    </div>
+
+    <div style="width: 71%;height: 400px;background-color: #fff;display: inline-block;padding-top: 1%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04);">
+        <div id="ranking-container" style="height: 100%"></div>
+    </div>
+
+    <div style="width: 48%;height: 320px;background-color: #fff;display: inline-block;margin: 1% 1% 0 1%;padding-top: 1%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04);">
+        <div id="project-container" style="height: 100%"></div>
+    </div>
+
+    <div style="width: 48%;height: 320px;background-color: #fff;display: inline-block;margin-top: 1%;padding-top: 1%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04);">
+        <div id="gain-container" style="height: 100%"></div>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/echarts.min.js}"></script>
+<script type="text/javascript">
+    let admin = new Vue({
+        el: "#app",
+        data: {
+            dataLine:[],
+        },
+        methods: {
+            handleRanking(){
+                // 查询最近三年的 每个类型的 申请量
+                axios.get("../monitor/server/ryac").then(res => {
+                    if (res.data.code == 1) {
+                        let array_object = [];
+                        array_object.push(['product',new Date().getFullYear()-2+'',new Date().getFullYear()-1+'',new Date().getFullYear()+'']);
+                        for (let i = 0; i <res.data.data.length ; i++) {
+                            array_object.push([res.data.data[i].trname,res.data.data[i].before_last,res.data.data[i].last_year,res.data.data[i].current_year]);
+                        }
+                        console.info(array_object);
+                        var dom = document.getElementById('ranking-container');
+                        var myChart = echarts.init(dom, null, {renderer: 'canvas', useDirtyRect: false});
+                        var option = {
+                            title: {text: '近三年科技成果认可统计'}, legend: {}, tooltip: {},
+                            dataset: {
+                                source:array_object
+                            },
+                            xAxis: { type: 'category' }, yAxis: {},
+                            series: [{ type: 'bar' }, { type: 'bar' }, { type: 'bar' }]
+                        };
+                        if (option && typeof option === 'object') {myChart.setOption(option);}
+                        window.addEventListener('resize', myChart.resize);
+                    } else {
+                        this.$message({message: "暂无数据!", type: "error"});
+                    }
+                });
+            },handleProject(){
+                //查询 不是 横向和纵向 的 count
+                axios.get("../monitor/server/pac").then(res => {
+                    if (res.data.code == 1) {
+                        let array_object = [];
+                        for (let i = 0; i <res.data.data.length ; i++) {
+                            array_object.push({ value: res.data.data[i].count, name:res.data.data[i].trname});
+                        }
+
+                        var dom = document.getElementById('project-container');
+                        var myChart = echarts.init(dom, null, {renderer: 'canvas', useDirtyRect: false});
+                        var option = {
+                            title: {text: '项目统计', left: 'center'}, tooltip: {trigger: 'item'},
+                            series: [
+                                {
+                                    name: '申请量', type: 'pie', radius: '50%',
+                                    label: {normal: {show: true, formatter: '{b}: {c}({d}%)'}},
+                                    data: array_object,
+                                    emphasis: {
+                                        itemStyle: {
+                                            shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                        }
+                                    }
+                                }
+                            ]
+                        };
+                        if (option && typeof option === 'object') {myChart.setOption(option);}
+                        window.addEventListener('resize', myChart.resize);
+                    } else {
+                        this.$message({message: "暂无数据!", type: "error"});
+                    }
+                });
+            },handleGain(){
+                //查询 横向 和 纵向 的 count
+                axios.get("../monitor/server/gac").then(res => {
+                    if (res.data.code == 1) {
+                        let array_object = [];
+                        for (let i = 0; i <res.data.data.length ; i++) {
+                            array_object.push({ value: res.data.data[i].count, name:res.data.data[i].trname});
+                        }
+
+                        var dom = document.getElementById('gain-container');
+                        var myChart = echarts.init(dom, null, {renderer: 'canvas', useDirtyRect: false});
+                        var option = {
+                            title: {text: '成果统计', left: 'center'}, tooltip: {trigger: 'item'},
+                            series: [
+                                {
+                                    name: '申请量', type: 'pie', radius: '50%',
+                                    label: {normal: {show: true, formatter: '{b}: {c}({d}%)'}},
+                                    data:array_object,
+                                    emphasis: {
+                                        itemStyle: {shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)'}
+                                    }
+                                }
+                            ]
+                        };
+                        if (option && typeof option === 'object') {myChart.setOption(option);}
+                        window.addEventListener('resize', myChart.resize);
+                    } else {
+                        this.$message({message: "暂无数据!", type: "error"});
+                    }
+                });
+            },getApplyCount(){
+                //查询 不同 gainapply count
+                axios.get("../monitor/server/acount").then(res => {
+                    if (res.data.code == 1) {
+                        this.dataLine.push({title:'初 审 中',sum:res.data.data.count1},
+                            {title:'复 核 中',sum:res.data.data.count2},
+                            {title:'已 认 可',sum:res.data.data.count3});
+                    } else {
+                        this.$message({message: "暂无数据!", type: "error"});
+                    }
+                });
+            }
+        }, mounted() {
+            this.handleRanking();
+            this.handleProject();
+            this.handleGain();
+            this.getApplyCount();
+        }
+    });
+</script>
+</body>
+</html>

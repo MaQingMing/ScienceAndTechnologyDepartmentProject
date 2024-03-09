@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 申请审核记录表 -->
+<mapper namespace="com.yc.apply.mapper.ApplylogMapper">
+    <insert id="insertBatch">
+        INSERT INTO applylog ( `status`, sysid, mark, applyid, create_time )
+        VALUES
+        <foreach item="item" index="index" collection="list"
+                 separator=",">
+            (#{item.status},#{item.sysid},#{item.mark},#{item.applyid},now())
+        </foreach>
+    </insert>
+    <insert id="insertSpecialBatch">
+        INSERT INTO applylog ( `status`, sysid, mark, applyid, create_time )
+        VALUES
+        <foreach item="item" index="index" collection="list"
+                 separator=",">
+            (1,#{uid},2,#{item},now())
+        </foreach>
+    </insert>
+    <select id="selectByPage" resultType="com.yc.apply.entity.Applylog">
+        select *
+        from applylog ${ew.customSqlSegment}
+    </select>
+    
+    <!-- 删除申请细表记录 -->
+    <update id="deleteApply">
+        delete from ${tableName} where gaid = #{gaid} 
+    </update>
+</mapper>

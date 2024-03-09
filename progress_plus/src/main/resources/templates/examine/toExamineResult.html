@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head "></head>
+<style type="text/css">
+    .el-divider--horizontal{margin: 12px 0!important;}
+    .bidding-pc-card{width: 285px;height: 285px;background-color: #fff;padding: 20px;display: inline-block;box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);margin: 10px 1%;border-radius:3px;}
+    .lego-hunan-bidding{padding: 5px 0;position: relative;top: -20px;left: 32%;border-bottom-left-radius: 12px;border-bottom-right-radius: 12px;width: 80px;text-align: center;}
+    .title h3:hover{color: #1C86EE;cursor: pointer;}
+</style>
+<body>
+<div id="er-app" v-cloak>
+    <div v-for="(item, index) in examines" v-if="index < 8" class="bidding-pc-card">
+        <div class="lego-hunan-bidding" v-if="item.status == 2 || item.status == 3" style="background-color: #ffefd0;">
+            <span style="font-size: 15px;font-weight: bold;color:#ff9d56;">公示中</span>
+        </div>
+        <div class="lego-hunan-bidding" v-else-if="item.status == 4 " style="background-color: #EBEEF5;">
+            <span style="font-size: 15px;font-weight: bold;color:#909399;">结束公示</span>
+        </div>
+
+        <el-row style="margin-bottom: 15px;margin-top: -10px;">
+            <el-col :span="24" class="title" style="min-height: 43px;">
+                <h3>{{item.titleInfo}}</h3>
+            </el-col>
+        </el-row>
+        <el-row>
+            <el-col :span="24" style="font-size: 15px;">{{item.countDown | countDown()}}</el-col>
+        </el-row>
+        <el-row >
+            <el-col :span="24"><el-divider></el-divider></el-col>
+        </el-row>
+
+        <el-row style="margin-bottom: 8px;">
+            <el-col :span="24" style="font-size: 15px;">考核年度:</el-col>
+        </el-row>
+        <el-row style="margin-bottom: 8px;">
+            <el-col :span="24" style="font-size: 15px;margin-left: 10px;">{{item.startDate}} 到 {{item.endDate}}</el-col>
+        </el-row>
+        <el-row>
+            <el-col :span="8" style="font-size: 14px;">发布时间:</el-col>
+            <el-col :span="15" style="font-size: 14px;">{{item.beginDate}}</el-col>
+        </el-row>
+        <el-divider></el-divider>
+        <el-row>
+            <el-col :span="12" style="text-align: center;">
+                <el-link type="primary" style="font-size: 16px;" :underline="false" @click="hanldeAss(item)">立即查看</el-link>
+            </el-col>
+            <el-col :span="12" style="text-align: center;">
+                <el-link type="primary" style="font-size: 16px;" :underline="false" @click="hanldeExport(item)">导出信息</el-link>
+            </el-col>
+        </el-row>
+        
+    </div>
+    <div style="color:#909399;text-align: center;width: 100%;">温馨提示 : 只显示已结束考核(公式中/结束公示)的近8年(8条)科技成果考核数据</div>
+</div>
+<script type="text/javascript">
+    let erApp = new Vue({
+        el: "#er-app",
+        data: {
+            examines: [],//公式中/结束公示数据
+            user: {} //用户信息
+        },
+        filters :{
+            // 倒计时处理
+            countDown(val){
+                if (val > 0){
+                    let tmpDate = val;
+                    let day = parseInt(val / 24 / 60 / 60);
+                    tmpDate = tmpDate - day * 24 * 60 * 60;
+                    if (day < 10){
+                        day = "0" + day;
+                    }
+                    let hours = parseInt(tmpDate / 60 / 60);
+                    tmpDate = tmpDate - hours * 60 * 60;
+                    if (hours < 10){
+                        hours = "0" + hours;
+                    }
+                    let minutes = parseInt(tmpDate / 60);
+                    if (minutes < 10){
+                        minutes = "0" + minutes;
+                    }                    
+                    return "距公示结束: " + day + " 天 " + hours + " 时 " + minutes + " 分 ";
+                }else {
+                    return "公示已结束: 00 天 00 时 00 分 ";
+                }
+            }
+        },
+        created(){
+            this.getExamineInfo();
+        },
+        methods: {
+            getExamineInfo(){
+                //查询 公式中/结束公示数据
+                axios.get("../e/get").then(res => {
+                    if (res.data.code == 1){
+                        // 对过长的字体进行截断 还有状态的显示
+                        res.data.data.forEach(item => {
+                            item.titleInfo = item.title;
+                            if (item.titleInfo.length > 30) {
+                                item.titleInfo = item.titleInfo.substring(0,30) + "..."
+                            }
+                            item.countDown = (new Date(item.publicityDate).getTime() - new Date().getTime()) / 1000;
+                        })
+                        this.examines = res.data.data;
+                        
+                    }else {
+                        this.$message(res.data.msg);
+                    }
+                })
+            }, hanldeAss(row) {
+                //查看考核结果
+                if (row.status <2 ){
+                    this.$message("请等考核结束后查看~");
+                    return;
+                }
+                //打开 科技成果计分汇总
+                var a = document.createElement('a');
+                var id = Math.random(10000, 99999);
+                //存入缓存
+                localStorage.setItem("eid",row.eid);
+                localStorage.setItem("title",row.title)
+                localStorage.setItem("tid", this.user.user.tid)
+                
+                a.setAttribute('href', "../examine/toAssSys?urlType=" + id);
+                a.setAttribute('target', '_blank');
+                a.click();
+            },hanldeExport(row){
+                //导出考核结果
+                const config={
+                    responseType: 'blob' //这个一定要设置，否则会出现文件下载后打不开的情况
+                }
+                let params = new URLSearchParams();
+                params.append("eid", row.eid);
+                this.$message({showClose: true, message: '正在准备下载,预计1-5分钟,请稍等请勿多次点击!', duration: 2000, type: 'warning'});
+                return axios.post("../e/exporttasExcel",params, config).then(res=>{
+                    let blob = new Blob([res.data], {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; application/octet-stream',
+                    });
+
+                    this.uploadError = false;
+                    const temp = res.headers["content-disposition"].split(";")[1].split("filename=")[1];
+                    let fileName = decodeURIComponent(temp);
+                    let objectUrl = URL.createObjectURL(blob);// 创建下载的链接
+                    let a = document.createElement("a");
+                    a.href = objectUrl;
+                    a.download = fileName;
+                    a.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, view: window}));
+                    window.URL.revokeObjectURL(blob);
+                })
+            }
+        }, mounted () {
+            this.user = JSON.parse(sessionStorage.getItem("user"));
+        }
+    })
+</script>
+</body>
+</html>

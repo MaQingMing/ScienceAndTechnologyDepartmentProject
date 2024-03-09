@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.ScientificApplyInfoMapper">
+    <insert id="insertBatch">
+        insert into scientific_apply_info(type, `name`, dept, gaid,
+        create_by, create_time)
+        values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.type},#{item.name},#{item.dept},#{item.gaid},#{user},now())
+        </foreach>
+    </insert>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid} and sysid = #{sid}
+    </update>
+    <select id="selectByPage" resultType="com.yc.apply.entity.ScientificApplyInfo">
+        select *
+        from scientific_apply_info ${ew.customSqlSegment}
+    </select>
+    <select id="queryScientificTypes" resultType="java.lang.String">
+        select distinct type
+        from scientific_apply_info
+    </select>
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--平台主键，平台名称，平台类型，批准单位，平台计分，团队成员-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.ScientificHisPage">
+        SELECT
+        distinct sai.saiid,
+        sai.type,
+        sai.`name`,
+        sai.dept,
+        sai.gaid,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        ( SELECT
+        GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        ssai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(ssai.cannot_score,0),'::',ssai.`host`))
+        FROM score_apply_info ssai WHERE ga.gaid = ssai.gaid ) scoreInfo,
+        ( SELECT cash FROM ( SELECT cash, max( found_score ) FROM
+        scientific_standard ss WHERE
+        FIND_IN_SET( ss.ssid, ga.childid )) s) cash,
+        ga.sid,
+        ga.according,
+        ga.date time,
+        ga.remarks,
+        (select lname from tech_results_level where leid = (select leid from invent_standard where iid = ga.childid))
+        level,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        ( SELECT nickname FROM systemuser WHERE id = ga.sid ) username,
+        CASE
+        WHEN ga.team = 1 THEN
+        '是'
+        WHEN ga.team = 0 THEN
+        '否' ELSE NULL
+        END isteam,
+        ga.team,
+        CASE
+        WHEN ga.recordid IS NULL then NULL ELSE (
+        SELECT
+        r.`name`
+        FROM
+        record r
+        WHERE
+        ga.recordid = r.id
+        AND r.`status` = 1
+        AND (( ga.team = 1 and find_in_set(ga.sid,r.team_id))
+        OR ( ga.team = 0 AND ga.sid = r.team_id )))
+        END rname,
+        ga.recordid
+        FROM
+        scientific_apply_info sai,
+        gain_apply ga,
+        record r
+        WHERE
+        sai.gaid = ga.gaid
+        AND ga.trtid = 7
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct sai.saiid)
+        FROM
+        scientific_apply_info sai,
+        gain_apply ga,
+        record r
+        WHERE
+        sai.gaid = ga.gaid
+        AND ga.trtid = 7
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != null and status != ""'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='dept!="" and dept != "" and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query =="") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( ss.posit )
+            FROM
+            scientific_standard ss
+            WHERE
+            FIND_IN_SET( ss.ssid, ga.childid )))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+        <if test='college!=null and college != "" and identifier == "1" and query == "" and isDept == "1"'>
+            AND FIND_IN_SET(
+            #{college},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            scientific_apply_info sai,
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != null and identifier == "1" and query == "" and isDept == "0"'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='dept!="" and dept != null and isDept == "0" and identifier == "1" and query == "0"'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (sai.`name` LIKE concat( '%', #{commonLike}, '%' )
+            OR sai.type LIKE concat( '%', #{commonLike}, '%' )
+            OR sai.dept LIKE concat(
+            '%',
+            #{commonLike},
+            '%'))
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( ss.leid )
+            FROM
+            scientific_standard ss
+            WHERE
+            FIND_IN_SET( ss.ssid, ga.childid )))))
+        </if>
+        <if test='identifier == "0"'>
+            AND ((FIND_IN_SET(#{userId},(select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid =
+            ga.gaid)) and ga.team = 1) or (ga.team = 0 and ga.sid = #{userId}))
+        </if>
+    </sql>
+
+    <resultMap id="records" type="map">
+        <id column="id" property="id"></id>
+        <result column="name" property="name"></result>
+    </resultMap>
+    <select id="queryRecords" resultMap="records">
+        select r.id, r.`name`  from record r  INNER JOIN systemuser su ON FIND_IN_SET(su.id, r.team_id) > 0
+        WHERE su.id = (SELECT id from systemuser where username = #{username}) and ( r.consume is NULL or r.consume &lt;=0 )
+        AND r.`status` = 1 and r.standard_id = 7
+    </select>
+
+    <resultMap id="Scores" type="map">
+        <result property="rid" column="rid" ></result>
+        <result property="content" column="content"></result>
+        <result property="childid" column="childid"></result>
+        <result property="ratio" column="ratio"></result>
+        <result property="foundScore" column="foundScore"></result>
+        <result property="checkScore" column="checkScore"></result>
+        <result property="lname" column="lname"></result>
+    </resultMap>
+
+    <select id="queryAdditionalRules" resultMap="Scores">
+        select rid,ar.content, childid, ratio, found_score as foundScore, check_score as checkScore, trl.lname
+        from additional_rules ar
+                 INNER JOIN tech_results_level trl ON ar.childid = trl.leid
+                 INNER JOIN scientific_standard ss ON trl.leid = ss.leid
+        WHERE trtid = 7
+    </select>
+
+</mapper>

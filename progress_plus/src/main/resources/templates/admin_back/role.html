@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<!-- 角色管理  -->
+<body>
+<div id="wrapper" v-cloak>
+    <div style="margin-top: -5px;">
+        <el-input size="small" v-model="search" style="width: 20%;" suffix-icon="el-icon-search" placeholder="请输入名称搜索"></el-input>
+        <el-button size="small" @click="loadTable" type="primary"  style="margin: 10px 0;margin-left: 10px;">查询</el-button>
+        <el-button size="small" @click="add" type="primary"  style="margin: 10px 0;margin-left: 10px;">新增</el-button>
+    </div>
+    <div style="margin-top: -25px;">
+        <el-divider></el-divider>
+    </div>
+
+    <el-table :data="tableData" border style="width: 100%;margin-top: -15px;" v-loading="loading">
+        <el-table-column prop="id" label="ID" width="50"></el-table-column>
+        <el-table-column prop="name" label="名称"></el-table-column>
+        <el-table-column prop="description" label="描述"></el-table-column>
+        <el-table-column label="权限" width="600">
+            <template slot-scope="scope">
+                <el-button type="text" @click="setPer(scope.row)">权限设置</el-button>
+            </template>
+        </el-table-column>
+        <el-table-column fixed="right" label="操作" width="190">
+            <template slot-scope="scope">
+                <el-button size="mini" type="primary" @click="edit(scope.row)"  icon="el-icon-edit" >编辑</el-button>
+                <el-popconfirm @onConfirm="del(scope.row.id)" title="确定删除？">
+                    <el-button size="mini" type="danger" icon="el-icon-delete" slot="reference" >删除</el-button>
+                </el-popconfirm>
+            </template>
+        </el-table-column>
+    </el-table>
+    <!-- 分页 -->
+    <div style="background-color: white">
+        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="pageNum"
+                       :page-sizes="[5, 10, 20, 40]" :page-size="pageSize" layout="total, sizes, prev, pager, next, jumper"
+                       :total="total">
+        </el-pagination>
+    </div>
+
+    <el-dialog title="角色信息" :visible.sync="dialogFormVisible" width="50%" :close-on-click-modal="false" >
+        <el-form :model="entity">
+            <el-form-item label="名称" label-width="120px">
+                <el-input placeholder="请输入名称" v-model="entity.name" autocomplete="off" style="width: 80%"></el-input>
+            </el-form-item>
+            <el-form-item label="描述" label-width="120px">
+                <el-input placeholder="请输入描述" v-model="entity.description" autocomplete="off" style="width: 80%"></el-input>
+            </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button size="small" type="primary" @click="save">确 定</el-button>
+            <el-button size="small" @click="dialogFormVisible = false">取 消</el-button>
+        </div>
+    </el-dialog>
+
+    <el-dialog title="权限菜单" :visible.sync="vis" width="50%" :close-on-click-modal="false" >
+        <el-form :model="entity" style="width: 80%; margin: 0 auto; line-height: 40px">
+            <el-checkbox-group v-model="entity.permission" >
+                <el-checkbox :label="item.id" v-for="item in options" :key="item.id">{{ item.name }}</el-checkbox>
+            </el-checkbox-group>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button size="small" @click="vis = false" >取 消</el-button>
+            <el-button size="small" type="primary" @click="save" >确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+<script type="text/javascript">
+    var saveBtnSta = true;
+    let urlBase = "../api/role/";
+    new Vue({
+        el: "#wrapper",
+        data: {
+            user: {},
+            // 页面加载效果
+            loading: false,
+            tableData: [],
+            pageNum: 1,
+            pageSize: 10,
+            total: 0,
+            dialogFormVisible: false,
+            entity: {},
+            isCollapse: false,
+            search: '',
+            options: [],
+            vis: false
+        },
+        created() {
+            this.user = sessionStorage.getItem("user") ? JSON.parse(sessionStorage.getItem("user")) : {};
+            this.loadTable();
+        },
+        methods: {
+            setPer(obj) {
+                this.entity = JSON.parse(JSON.stringify(obj))
+                this.vis = true;
+            }, handleCollapse() {
+                this.isCollapse = !this.isCollapse;
+            }, logout() {
+                $.get("../api/user/logout");
+                sessionStorage.removeItem("user");
+                location.href = "../login";
+            }, loadTable() {
+                this.$data.loading=true;
+                $.get(urlBase + "page?pageNum=" + this.pageNum + "&pageSize=" + this.pageSize + "&name=" + this.search).then(res => {
+                    this.tableData = res.data.records;
+                    this.total = res.data.total;
+                });
+
+                $.get("../api/permission").then(res => {this.options = res.data;});
+                this.$data.loading=false;
+            }, exp() {
+                window.open(urlBase + "/export");
+            }, handleSizeChange(pageSize) {
+                this.pageSize = pageSize;
+                this.loadTable();
+            }, handleCurrentChange(pageNum) {
+                this.pageNum = pageNum;
+                this.loadTable();
+            }, add() {
+                this.entity = {};
+                this.dialogFormVisible = true;
+            }, save() {
+                console.info(saveBtnSta);
+                if(saveBtnSta){
+                    saveBtnSta=true;
+                    let type = this.entity.id ? "update" : "save";
+                    $.ajax({url: urlBase + type, type: "POST", contentType: "application/json",
+                        data: JSON.stringify(this.entity)}).then(res => {
+                        if (res.code == 1) {
+                            this.$message({message: "保存成功", type: "success"});
+                            this.loadTable();
+                        } else {
+                            this.$message({message: res.msg, type: "error"});
+                            saveBtnSta=false;
+                        }
+                        this.dialogFormVisible = false;
+                        this.vis = false;
+                    })
+                }
+            }, edit(obj) {
+                this.entity = JSON.parse(JSON.stringify(obj));
+                this.dialogFormVisible = true;
+                saveBtnSta=true;
+            }, del(id) {
+                $.ajax({url: urlBase +"del/"+ id, type: "GET"}).then(res => {
+                    if (res.code == 1) {
+                        this.$message({message: "删除成功", type: "success"});
+                        this.loadTable();
+                    } else {
+                        this.$message({message: res.msg, type: "error"});
+                    }
+                })
+            }
+        }
+    })
+</script>
+</body>
+</html>

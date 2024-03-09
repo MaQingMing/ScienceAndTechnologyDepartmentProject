@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.ExamineMapper">
+
+       <select id="findTreatSystemUser" resultType="java.util.Map">
+            <!--select s.id,s.nickname,s.base_score,s.score_balance,s.non_score_balance,s.loan_score,esu.esuid,esu.remarks,
+            (select count(*) from examine_detail where sysid = s.id and eId = #{eid} )as edcount
+            from systemuser  s  left join examine_special_user esu on esu.sysid = s.id-->
+             select s.id,s.nickname,s.base_score,s.score_balance,s.non_score_balance,s.loan_score,(select count(edid) from examine_detail where eid = #{eid} and sysid = s.id) as examineCount from systemuser s left join examine_detail ed on ed.sysid = s.id
+       </select>
+
+       <select id="findSystemUserTechResultsType" resultType="java.util.Map">
+            select ga.sid,trt.trid,trt.trname as trname,sum((IFNULL(sai.can_score,0) + IFNULL(sai.cannot_score,0))) as score
+            from tech_results_type trt left join gain_apply ga on trt.trid = ga.trtid left join score_apply_info sai on sai.gaid = ga.gaid  where ga.status = 2
+            and DATE_FORMAT(ga.create_time,'%Y%m%d') &gt;= DATE_FORMAT(#{starttime},'%Y%m%d')
+            and DATE_FORMAT(ga.create_time,'%Y%m%d') &lt;= DATE_FORMAT(#{endtime},'%Y%m%d') GROUP BY trt.trname,ga.sid
+        </select>
+
+    <select id="queryExamine" resultType="com.yc.apply.entity.Examine">
+        SELECT eid,title,start_date ,end_date,special,total,`status`,begin_date,finish_date,publicity_date,
+               qualified,unqualified,format(passrate * 100,2) as passrate ,remarks
+        from examine ORDER BY status,start_date DESC
+            LIMIT #{currentPage} , #{currentSize}
+    </select>
+
+    <resultMap id="LnameTotal" type="map">
+        <result column="纵向科研" property="纵向科研"></result>
+        <result column="横向科研" property="横向科研"></result>
+        <result column="科技成果" property="科技成果"></result>
+        <result column="科技荣誉" property="科技荣誉"></result>
+        <result column="学术论文" property="学术论文"></result>
+        <result column="学术专著" property="学术专著"></result>
+        <result column="科研平台" property="科研平台"></result>
+        <result column="发明专利" property="发明专利"></result>
+    </resultMap>
+    <select id="queryLnameTotal" resultMap="LnameTotal">
+        select count(direction) as 纵向科研 ,count(transverse) as 横向科研,count(achievement) as 科技成果,
+               count(honor) as 科技荣誉,count(paper) as 学术论文,
+               count(book) as 学术专著,count(scientific) as 科研平台,
+               count(invent) as 发明专利 FROM examine_detail
+               where eid = #{eid} AND status = 1
+    </select>
+
+    <select id="queryLnameScore" resultMap="LnameTotal">
+        select        IFNULL(SUM(direction), 0) AS 纵向科研,
+                      IFNULL(SUM(transverse), 0) AS 横向科研,
+                      IFNULL(SUM(achievement), 0) AS 科技成果,
+                      IFNULL(SUM(honor), 0) AS 科技荣誉,
+                      IFNULL(SUM(paper), 0) AS 学术论文,
+                      IFNULL(SUM(book), 0) AS 学术专著,
+                      IFNULL(SUM(scientific), 0) AS 科研平台,
+                      IFNULL(SUM(invent), 0) AS 发明专利 FROM examine_detail where eid= #{eid} and status = 1
+    </select>
+
+    <select id="findToAssInfo" resultType="com.yc.vo.ToAssInfo">
+        SELECT s.tid,ed.edid,s.nickname,l.tname,sys.edu,s.academy,s.academy_care,ed.standard,
+               IFNULL(SUM(ed.achievement), 0)  AS achievement ,
+               IFNULL(SUM(ed.book), 0)  AS book ,
+               IFNULL(SUM(ed.direction), 0) AS direction ,
+               IFNULL(SUM( ed.transverse), 0) AS transverse ,
+               IFNULL(SUM(ed.honor), 0) AS honor ,
+               IFNULL(SUM(ed.paper), 0) AS paper ,
+               IFNULL(SUM(ed.scientific), 0) AS scientific ,
+               IFNULL(SUM(ed.invent), 0) AS invent ,
+               IFNULL(SUM(ed.count), 0) AS count
+        from examine_detail ed INNER JOIN systemuser s ON ed.sysid = s.id
+            INNER JOIN labeldept l ON s.tid = l.tid
+            INNER JOIN  (select id,
+            (SELECT GROUP_CONCAT( context SEPARATOR ',' )
+            FROM t_job WHERE instr( REPLACE ( REPLACE (REPLACE ( job, '[', '' ), ']', '' ), ' ', '' ), id )) AS edu FROM systemuser) sys  ON sys.id = ed.sysid
+        WHERE ed.eid = #{eid}
+         <if test="queryName != null and queryName != '' and queryName != 'null'">
+            and nickname like concat('%', #{queryName}, '%') or username like concat('%', #{queryName}, '%')
+        </if>
+         GROUP BY ed.sysid ORDER BY l.tid  limit #{currentPage},#{currentSize}
+    </select>
+
+    <select id="findToAssInfoTotal" resultType="int">
+        select count(*) as total from examine_detail ed INNER JOIN systemuser s ON ed.sysid = s.id
+        INNER JOIN labeldept l ON s.tid = l.tid
+        INNER JOIN  (select id,
+        (SELECT GROUP_CONCAT( context SEPARATOR ',' )
+        FROM t_job WHERE instr( REPLACE ( REPLACE (REPLACE ( job, '[', '' ), ']', '' ), ' ', '' ), id )) AS edu FROM systemuser) sys  ON sys.id = ed.sysid
+        where ed.eid = #{eid}
+        <if test="queryName != null and queryName != '' and queryName != 'null'">
+            and s.nickname like concat('%', #{queryName}, '%') or s.username like concat('%', #{queryName}, '%')
+        </if>
+    </select>
+
+    <resultMap id="People" type="map">
+        <result property="nickname" column="nickname"></result>
+        <result property="username" column="username"></result>
+        <result property="phone" column="phone"></result>
+        <result property="academy" column="academy"></result>
+        <result property="academy_care" column="academy_care"></result>
+        <result property="tname" column="tname"></result>
+    </resultMap>
+
+    <select id="queryNoPeople" resultMap="People">
+        select s.nickname,s.username,s.phone,IFNULL(s.academy,0) AS academy,IFNULL(s.academy_care,0) AS academy_care,
+               l.tname,rr.remarks from systemuser s INNER JOIN labeldept l ON s.tid = l.tid,
+        (select remarks from examine_special_user where eId = #{eid} GROUP BY eId) rr
+        <where>
+            id in
+            <foreach collection="ids" item="id" open="(" close=")" separator=",">
+                 #{id}
+            </foreach>
+        </where>
+    </select>
+
+    <resultMap id="NumsTotal" type="map">
+        <result column="totalByZero" property="totalByZero"></result>
+        <result column="totalByOne" property="totalByOne"></result>
+        <result column="sum" property="sum"></result>
+        <result column="passrate" property="passrate" ></result>
+    </resultMap>
+
+    <select id="queryExamineDetailTotal" resultMap="NumsTotal">
+        select num.totalByZero,num.totalByOne,count.sum , num.totalByOne/count.sum AS passrate from (SELECT
+            SUM(CASE WHEN `status` = 0 THEN 1 ELSE 0 END) AS totalByZero,
+            SUM(CASE WHEN `status` = 1 THEN 1 ELSE 0 END) AS totalByOne
+            FROM examine_detail
+            WHERE eid = #{eid}) num ,
+            (select count(*) as sum from examine_detail  WHERE eid=#{eid}) count
+    </select>
+
+
+    <select id="queryTimeBetween" resultType="int">
+        SELECT count(*) FROM examine WHERE `status` IN (0, 1) AND (SELECT MAX(finish_date) &lt; #{date} FROM examine)
+    </select>
+
+    <resultMap id="ExamineType" type="map">
+        <result property="nickname" column="nickname"></result>
+        <result property="data" column="data"></result>
+        <result property="field_name" column="field_name"></result>
+    </resultMap>
+
+    <select id="queryExamineTypeTotal" resultMap="ExamineType">
+        SELECT s.nickname, direction AS data, '纵向科研' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id AND direction &gt; 0
+        UNION ALL
+        SELECT s.nickname, transverse AS data, '横向科研' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id  AND transverse &gt; 0
+        UNION ALL
+        SELECT s.nickname, achievement AS data, '科技成果' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id   AND achievement &gt; 0
+        UNION ALL
+        SELECT s.nickname, honor AS data, '科技荣誉' AS field_name
+        FROM examine_detail  ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id   AND honor &gt; 0
+        UNION ALL
+        SELECT s.nickname, paper AS data, '学术论文' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id  AND paper &gt; 0
+        UNION ALL
+        SELECT s.nickname, book AS data, '学术专著' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id  AND book &gt; 0
+        UNION ALL
+        SELECT s.nickname, scientific AS data, '科研平台' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id   AND scientific &gt; 0
+        UNION ALL
+        SELECT s.nickname, invent AS data, '发明专利' AS field_name
+        FROM examine_detail ed ,systemuser s
+        WHERE eid = #{eid} and  ed.sysid = s.id AND invent &gt; 0
+    </select>
+
+    <select id="findLabeldeptTypeProjectCount" resultType="java.util.Map">
+        select l.tname,SUM(edd.direction) as direction,SUM(edd.transverse) as transverse,SUM(edd.achievement) as achievement,
+        SUM(edd.honor) as honor,SUM(edd.paper) as paper,SUM(edd.book) as book,SUM(edd.scientific) as scientific,
+        SUM(edd.invent) as invent,SUM(edd.count)  as count
+        from systemuser ss
+        left join examine_detail edd on edd.sysid = ss.id
+        left join labeldept l on l.tid = ss.tid
+        where edd.eid = #{eid,jdbcType=INTEGER} and  l.tid &gt; 0 GROUP BY l.tid
+    </select>
+    
+    <!-- 查询年度考核信息 -->
+    <select id="selectExamine" resultType="com.yc.apply.entity.Examine">
+        select eid, title, start_date, end_date, begin_date, finish_date, publicity_date, status from examine  where `status` &gt;=2 order by start_date desc LIMIT 8
+    </select>
+
+    <!-- 通过昵称或工号查询用户所在学院的考核信息 -->
+    <select id="findToAssInfoByNicknameOrUsername" resultType="com.yc.vo.ToAssInfo">
+        SELECT s.tid,ed.edid,s.nickname,l.tname,sys.edu,s.academy,s.academy_care,ed.standard,
+               IFNULL(SUM(ed.achievement), 0)  AS achievement ,
+               IFNULL(SUM(ed.book), 0)  AS book ,
+               IFNULL(SUM(ed.direction), 0) AS direction ,
+               IFNULL(SUM( ed.transverse), 0) AS transverse ,
+               IFNULL(SUM(ed.honor), 0) AS honor ,
+               IFNULL(SUM(ed.paper), 0) AS paper ,
+               IFNULL(SUM(ed.scientific), 0) AS scientific ,
+               IFNULL(SUM(ed.invent), 0) AS invent ,
+               IFNULL(SUM(ed.count), 0) AS count
+        from examine_detail ed INNER JOIN systemuser s ON ed.sysid = s.id
+            INNER JOIN labeldept l ON s.tid = l.tid
+            INNER JOIN  (select id,
+            (SELECT GROUP_CONCAT( context SEPARATOR ',' )
+            FROM t_job WHERE instr( REPLACE ( REPLACE (REPLACE ( job, '[', '' ), ']', '' ), ' ', '' ), id )) AS edu FROM systemuser) sys  ON sys.id = ed.sysid
+        WHERE ed.eid = #{eid} and s.tid = #{tid}
+            <if test="queryName != null and queryName != '' and queryName != 'null'">
+                and nickname like concat('%', #{queryName}, '%') or username like concat('%', #{queryName}, '%')
+            </if>
+            GROUP BY ed.sysid ORDER BY l.tid
+            limit #{currentPage},#{currentSize}
+    </select>
+
+    <!-- 根据学院ID科技分总数 -->
+    <select id="findToAssInfoTotalByTid" resultType="Integer">
+        SELECT count(*)
+        from examine_detail ed INNER JOIN systemuser s ON ed.sysid = s.id
+        INNER JOIN labeldept l ON s.tid = l.tid
+        INNER JOIN  (select id,
+        (SELECT GROUP_CONCAT( context SEPARATOR ',' )
+        FROM t_job WHERE instr( REPLACE ( REPLACE (REPLACE ( job, '[', '' ), ']', '' ), ' ', '' ), id )) AS edu FROM systemuser) sys  ON sys.id = ed.sysid
+        WHERE ed.eid = #{eid} and s.tid = #{tid}
+        <if test="queryName != null and queryName != '' and queryName != 'null'">
+            and nickname like concat('%', #{queryName}, '%') or username like concat('%', #{queryName}, '%')
+        </if>
+    </select>
+
+
+</mapper>

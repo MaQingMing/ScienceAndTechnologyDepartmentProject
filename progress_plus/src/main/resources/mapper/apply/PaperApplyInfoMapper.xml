@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.PaperApplyInfoMapper">
+    <insert id="insertBatch">
+        INSERT INTO paper_apply_info ( `name`, periodical_name, cnnum, `order`, institute, gaid,
+        according, create_by,create_time)
+        VALUES
+        <foreach item="item" index="index" collection="list"
+                 separator=",">
+            (#{item.name},#{item.periodicalName},#{item.cnnum},#{item.order},
+            #{item.institute},#{item.gaid},#{item.according},#{user},now())
+        </foreach>
+    </insert>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid} and sysid = #{sid}
+    </update>
+    <select id="selectByPage" resultType="com.yc.apply.entity.PaperApplyInfo">
+        select *
+        from paper_apply_info ${ew.customSqlSegment}
+    </select>
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--论文主键，论文名称，论文发表刊物名，论文期号，论文作者排序，论文研究院，论文计分-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.PaperHisPage">
+        SELECT
+        distinct pai.paiid,
+        pai.`name`,
+        pai.periodical_name,
+        pai.cnnum,
+        pai.`order`,
+        pai.institute,
+        pai.gaid,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        (SELECT GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`)) FROM
+        score_apply_info sai WHERE ga.gaid = sai.gaid ) scoreInfo,
+        (select tname from labeldept where tid = (select tid from systemuser where id = ga.sid)) user_dept,
+        ga.according,
+        (select GROUP_CONCAT(lname) from tech_results_level where FIND_IN_SET(leid, (select GROUP_CONCAT(distinct leid)
+        from paper_standard where FIND_IN_SET(psid,ga.childid)))) level,
+
+        ga.date time,
+        case when ga.batch = 1 then '是' else '否' end batch,
+        ga.remarks,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        ga.sid,
+        ( SELECT s.nickname FROM systemuser s WHERE s.id = ga.sid ) username,
+        CASE
+        WHEN ga.team = 1 THEN
+        '是'
+        WHEN ga.team = 0 THEN
+        '否' ELSE NULL
+        END team,
+        CASE
+        WHEN ga.recordid IS NULL then NULL ELSE (
+        SELECT
+        r.`name`
+        FROM
+        record r
+        WHERE
+        ga.recordid = r.id
+        AND r.`status` = 1
+        AND r.team_id = ga.sid )
+        END rname,
+        ga.recordid
+        FROM
+        paper_apply_info pai,
+        gain_apply ga,
+        record r
+        WHERE
+        pai.gaid = ga.gaid
+        AND ga.trtid = 4
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct pai.paiid)
+        FROM
+        paper_apply_info pai,
+        gain_apply ga,
+        record r
+        WHERE
+        pai.gaid = ga.gaid
+        AND ga.trtid = 4
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != null and status != ""'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (pai.`name` LIKE concat( '%', #{commonLike}, '%' )
+            OR pai.institute LIKE concat( '%', #{commonLike}, '%' )
+            OR pai.periodical_name LIKE concat('%', #{commonLike}, '%'))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( ps.leid )
+            FROM
+            paper_standard ps
+            WHERE
+            FIND_IN_SET( ps.psid, ga.childid )))))
+        </if>
+        <if test='identifier == "0"'>
+            AND #{userId} = ga.sid
+        </if>
+        <if test='dept!="" and dept != null and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query == "") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( ps.posit )
+            FROM
+            paper_standard ps
+            WHERE
+            FIND_IN_SET( ps.psid, ga.childid )))
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != null and identifier == "1" and isDept == "0"'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+    </sql>
+</mapper>

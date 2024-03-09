@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.ExamineDetailMapper">
+
+    <insert id="addExamineDetailList">
+        INSERT INTO examine_detail(`sysid`, `standard`, `direction`, `transverse`, `achievement`, `honor`, `paper`, `book`, `scientific`, `invent`, `count`,
+         `status`, `remark`, `eid`, `create_by`, `create_time`, `update_by`, `update_time`)
+         VALUES
+
+        <foreach collection="list" item="item" index="index" separator=",">
+         (#{item.sysid}, #{item.standard},  #{item.direction},  #{item.transverse},  #{item.achievement},  #{item.honor},
+         #{item.paper},  #{item.book},  #{item.scientific},  #{item.invent},  #{item.count},
+          #{item.status}, #{item.remark}, #{item.eid}, 1, now(), 1, now())
+        </foreach>
+    </insert>
+
+</mapper>

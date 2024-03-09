@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/apply_header :: head"></head>
+<style type="text/css">
+    .input_number .el-input__inner {
+        border-radius: 5px;
+    }
+</style>
+<body>
+<!-- 主页面 -->
+<div id="app">
+    <div class="Contentfilling">
+        <div style="width: 99%;margin-top: 5px;">
+            <div th:insert="~{common/apply/apply_tabs :: copytabs}"></div>
+        </div>
+        <div style="width: 99%;margin-top: 0px" v-for="(item, index) in editableTabs">
+            <el-collapse v-model="item.activeName" accordion @change="handelCurrentCollapse"
+                         v-if="editableTabsValue == item.name">
+                <el-collapse-item name="1">
+                    <template slot="title">
+                        <div class="cf-title" style="width: 99%">
+                            <el-tooltip class="item" effect="dark" content="*为必填项" placement="top">
+                                <p style="">基本信息/材料上传</p>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                    <div style="margin-top: 5px;width: 90%;margin-left: 5%;">
+                        <div class="infostyle">
+                            <div class="tstitle">
+                                <p><a style="color:#ff557f;">*</a>项目名称:</p>
+                            </div>
+                            <div class="inputstyle" style="width: 950px;">
+                                <el-input v-model="item.xmname" placeholder="请输入项目名称"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle"><p><a style="color:#ff557f;">*</a>批准单位:</p></div>
+                            <div class="inputstyle">
+                                <el-input v-model="item.xmdepartment" placeholder="请输入批准单位"></el-input>
+                            </div>
+                        </div>
+                        <div class="infostyle" style="margin-left: 10px;">
+                            <div class="tstitle" style="width: 120px;">
+                                <p><a style="color:#ff557f;">*</a>获奖形式与内容:</p>
+                            </div>
+                            <div class="inputstyle" style="margin-left: 10px;">
+                                <el-input v-model="item.xmcontent" placeholder="获奖形式与内容"></el-input>
+                            </div>
+                        </div>
+
+                        <div class="infostyle" style="margin-left: 10px;">
+                            <div class="tstitle" style="width: 120px;">
+                                <p><a style="color:#ff557f;">*</a>申报单位:</p>
+                            </div>
+                            <div class="inputstyle" style="margin-left: 10px;">
+                                <template>
+                                    <el-radio v-model="item.xmfirstSign" label="1">我校第一单位</el-radio>
+                                    <el-radio v-model="item.xmfirstSign" label="0">我校非第一单位</el-radio>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="infostyle">
+                            <div class="tstitle" style="margin-left: 8px;"><p>备注:</p></div>
+                            <div class="inputstyle" style="width: 950px;margin-left: -8px;">
+                                <el-input v-model="item.xmremark" placeholder="请输入备注"></el-input>
+                            </div>
+                        </div>
+                        <div class="cf-title" style="float: left;width: 100%;margin-top: 30px;">
+                            <el-tooltip class="item" effect="dark" content="*能上传多个jpg/png/pdf文件，且不超过5M" placement="top">
+                                <p style="margin-top: -20px;">文件上传</p>
+                            </el-tooltip>
+                        </div>
+                        <div class="uploaddiv" style="margin-top: 20px;">
+                            <el-upload :on-change="handleChangeFile" :before-remove="beforeRemove"
+                                       :on-remove="handleRemove"
+                                       :on-exceed="handleExceed" :limit="10"
+                                       :auto-upload="false" list-type="text"
+                                       class="upload-demo" :file-list="item.fileList"
+                                       accept=".pdf,.jpg,.doc,.png,.docx"
+                                       drag multiple>
+                                <i class="el-icon-upload"></i>
+                                <div class="el-upload__text" style="font-weight: bold">
+                                    <div class="el-upload__text" style="font-weight: bold">将文件拖到此处，或<em>点击上传</em></div>
+                                    <div class="el-upload__text" style="font-weight: bold">只能上传<em>10</em>个<em>jpg/png/pdf/word</em>文件，且不超过<em>5M</em>
+                                    </div>
+                                </div>
+                            </el-upload>
+                        </div>
+                    </div>
+
+                </el-collapse-item>
+                <el-collapse-item name="2">
+                    <template slot="title">
+                        <div class="cf-title" style="width: 99%">
+                            <el-tooltip class="item" effect="dark" content="*科技成果奖可依市\省\国家级逐级申报,获得的各级科技成果计分可重复计算"
+                                        placement="top">
+                                <p style="">类别选择</p>
+                            </el-tooltip>
+                        </div>
+                    </template>
+                    <div style="width: 90%;margin-left: 5%;">
+                        <el-table @selection-change="handleSelectionChange" ref="multipleTable"
+                                  height="410px" :data="tableData" tooltip-effect="dark" style="width: 100%">
+                            <el-table-column type="selection"></el-table-column>
+                            <el-table-column prop="lname" label="级别" width="180"></el-table-column>
+                            <el-table-column prop="context" label="计算类别" width="720"></el-table-column>
+                            <el-table-column prop="score" label="科技计分(分)"></el-table-column>
+                        </el-table>
+                    </div>
+                    <div style="width: 90%;margin-left: 5%;">
+                        <div class="infostyle" style="width: 100%">
+                            <div class="tstitle"><p>添加备案:</p></div>
+                            <div class="inputstyle">
+                                <el-select style="width: 100%;" v-model="item.xmRecord" filterable allow-create
+                                           default-first-option placeholder="请选择项目备案"
+                                           @click.native="selectRecord" @change="changeRecord">
+                                    <el-option v-for="items in Recordoptions" :key="items.id" :label="items.name"
+                                               :value="items.id">
+                                    </el-option>
+                                </el-select>
+                            </div>
+                        </div>
+                        <br>
+                        <el-row style="margin: 40px 0 10px 0;">
+                            <el-col :span="2">
+                                <div class="tstitle"><p>项目附则:</p></div>
+                            </el-col>
+                            <el-col :span="19">
+                                <!--  @change="changeAdditional"  @clear="clearSelection" -->
+                                <el-select style="width: 100%;" v-model="item.additional" filterable clearable
+                                           multiple collapse-tags
+                                           @change="changeAdditional"
+                                           default-first-option placeholder="请选择项目附则">
+                                    <el-option v-for="(items,index) in additionals" :key="index" :label="items.content"
+                                               :value="items.rid"
+                                               :disabled="(item.additional.includes(additionals[0].rid) && index === 1) ||
+                                                (item.additional.includes(additionals[1].rid) && index === 0)">
+                                    </el-option>
+                                </el-select>
+                            </el-col>
+                        </el-row>
+
+                        <el-row style="margin: 10px 0;margin-top: 15px;" v-show="item.isOrder">
+                            <el-col :span="3">
+                                <div class="tstitle" style="width: 110px"><p><a style="color:#ff557f;">*</a>我校排名次序:</p>
+                                </div>
+                            </el-col>
+                            <el-col :span="7" class="input_number">
+                                <el-input-number v-model="item.xmschoolorder" controls-position="right"
+                                                 :min="0" @change="checkIfInteger"></el-input-number>
+                            </el-col>
+
+                            <el-col :span="3">
+                                <div class="tstitle" style="width: 120px"><p><a style="color:#ff557f;">*</a>教职工排名次序:</p>
+                                </div>
+                            </el-col>
+                            <el-col :span="7" class="input_number">
+                                <el-input-number v-model="item.xmworkersorder" controls-position="right"
+                                                 :min="0" @change="checkIfInteger"></el-input-number>
+                            </el-col>
+                        </el-row>
+
+                        <el-row style="margin: 10px 0;">
+                            <el-col :span="2">
+                                <div class="tstitle"><p>选中的规则</p></div>
+                            </el-col>
+                            <el-col :span="19">
+                                <div class="tstitle" style="width: 100%;">
+                                    <span v-for="(items,index) in additionals"
+                                          v-if="item.additional.includes(items.rid)">
+                                        {{ items.showcontent }}<br>
+                                    </span>
+                                </div>
+                            </el-col>
+                        </el-row>
+
+                        <el-row style="margin-bottom: 10px;">
+                            <el-col :span="2">
+                                <div class="tstitle"><p><a style="color:#ff557f;">*</a>获奖等级:</p></div>
+                            </el-col>
+                            <el-col :span="7">
+                                <el-input v-model="item.xmawardlevel" placeholder="请输入获奖等级"></el-input>
+                            </el-col>
+
+                            <el-col :span="3" style="text-align: right;">
+                                <div class="tstitle"><p><a style="color:#ff557f;">*</a>团队/个人:</p></div>
+                            </el-col>
+                            <el-col :span="4">
+                                <div style="float: left;width: 150px;">
+                                    <el-radio-group v-model="item.xmoneorteam">
+                                        <el-radio-button label="0">个人</el-radio-button>
+                                        <el-radio-button label="1">团队</el-radio-button>
+                                    </el-radio-group>
+                                </div>
+                            </el-col>
+
+                            <el-col :span="2">
+                                <div class="tstitle" v-if="item.xmoneorteam==0"><p><a style="color:#ff557f;">*</a>申请人:
+                                </p></div>
+                            </el-col>
+                            <el-col :span="6">
+                                <span v-if="item.xmoneorteam==0"><el-input v-model="item.xmpeople"
+                                                                           :disabled="true"></el-input></span>
+                                <span v-else-if="item.xmoneorteam==1">
+                                    <el-button type="primary" @click="pdlory" style="width: 260px;" round plain>选择成员与分数分配</el-button>
+                                </span>
+                            </el-col>
+                        </el-row>
+                    </div>
+                </el-collapse-item>
+            </el-collapse>
+        </div>
+    </div>
+    <div class="bottomcard" style="margin-bottom: 5px;" th:insert="~{common/apply/apply_bottom :: copybottom}"></div>
+
+    <el-dialog :visible.sync="dialogVisible" width="760px" :before-close="handleClose" center>
+        <div>
+            <div style="font-size: 15px;color: #4c4c4c;font-weight: bold;margin-top: -35px;">
+                <p style="">当前您可分配的总分数为：<a style="color: #0081fe;">{{editableTabs[editableTabsValue].showfs}}</a></p>
+            </div>
+            <div class="cytitle" style="margin-top: 10px;">
+                <div style="float: left;margin-left: 20%;"><p>姓名</p></div>
+                <div style="float: left;margin-left: 30%;"><p>分数</p></div>
+                <el-button type="primary" size="mini" style="float: left;margin-left: 160px;" @click="addpeople">添加
+                </el-button>
+            </div>
+            <div style="position: absolute;top: 100px;font-weight: bold;"><a>主持人</a></div>
+
+            <el-input v-model="editableTabs[editableTabsValue].default_options.label" :disabled="true"
+                      style="margin-left: 58px;width: 220px;margin-bottom: 10px;margin-top: 13px">
+                {{editableTabs[editableTabsValue].default_options.label}}
+            </el-input>
+            <!-- @input="losefs(defaultScore)" -->
+            <el-input placeholder="请输入分数" style="width: 220px;margin-bottom: 10px;margin-top: 13px;margin-left: 12px;"
+                      v-model="editableTabs[editableTabsValue].default_options.score"
+                      @input="losefs(editableTabs[editableTabsValue].default_options.score)"></el-input>
+
+            <div style="width: 90%;margin-left: 5%;float: left;padding-bottom: 10px;"
+                 v-for="(item,index) in editableTabs[editableTabsValue].peoples" :key="index">
+                <div class="inputstyle" style="width: 220px;margin-left: 20px;margin-top: 10px;">
+                    <!-- :filter-method="filterMethod"  @change="handleSelectChange(index, item.name)" @clear="handleClear(index, item.name)" @focus="clearOptions" -->
+                    <el-select style="width: 100%;" v-model="item.name" filterable allow-create
+                               default-first-option
+                               :filter-method="inputQuery"
+                               :key="'id' + index"
+                               value-key="nickname"
+                               @change="selectedUser"
+                               placeholder="请输入姓名" clearable>
+                        <el-option v-for="user in searchedUsers" :key="user.id"
+                                   :label="user.nickname + ' ' + user.username"
+                                   :value="user">
+                        </el-option>
+                        <!--<el-option  :key="item.value" :label="item.label" :value="item.value">
+                        </el-option>-->
+                    </el-select>
+                </div>
+                <div class="inputstyle" style="width: 220px;margin-left: 20px; margin-top: 10px;">
+                    <el-input v-model="item.score" placeholder="请输入分数" @input="losefs(item.score)"></el-input>
+                </div>
+                <div style="float: left;margin-top: 15px;margin-left: 60px;">
+                    <el-button type="danger" plain size="small" @click="deleteone(index)">删除</el-button>
+                </div>
+            </div>
+        </div>
+
+        <span slot="footer" class="dialog-footer">
+            <el-button type="primary" size="small" style="border-radius: 5px;" @click="cmfs()">确 定</el-button>
+        </span>
+    </el-dialog>
+</div>
+<script type="text/javascript">
+    new Vue({
+        el: "#app",
+        data: {
+            user: {}, // 登录用户信息
+            applyPageName: '科技成果奖',
+            chinesedata: ['一', '二', '三', '四', '五', '六'],// 中文数字
+            editableTabs: [
+                {
+                    title: '新建申报一',
+                    trtid: "", //项目类型id
+                    name: '0',
+                    activeName: '1',// 折叠面板参数
+                    xmname: "", // 项目名称
+                    xmcontent: "", // 获奖形式及内容
+                    xmdepartment: "", // 项目批准单位
+                    xmpeople: "", // 申请人
+                    xmfirstSign: '1',//我校是否是第一单位
+                    isOrder: false,//是否显示排名
+                    xmschoolorder: 0,//我校排名
+                    xmworkersorder: 0,//教职工排名
+                    xmoneorteam: "0",//团队还是个人
+                    xmRecord: "", // 项目备案
+                    xmremark: "", // 项目备注
+                    xmawardlevel: "",// 获奖等级
+                    xmselectedProject: [],//选中的项目
+                    additional: "",//附则
+                    content: "", // 附则信息
+                    ratio: 1, // 计算比率
+                    scoreType: "", // 附则类型
+                    addScore: 0, // 累加分数
+                    xmadditionals: {}, //附则对象
+                    showfs:0, //团队待分配的分数
+                    xmfs: 0, // 项目总分
+                    default_options: {label: "", score: 0},//主持人信息
+                    peoples: [], // 选择申请人列表
+                    fileList: [], // 文件列表
+                    score: 0, // 计算分数
+                    scoreInfo: "", // 分配详情
+                    selectTypeId: '', // 选中的项目级别
+                    selectId: '', // 选中的项目
+                    selectedRecord: '', // 选中项目备案id
+                    sid: "", //申请人id
+                }
+            ],//标签页数组
+            editableTabsValue: '0',//标签页默认选中
+            tabIndex: 0,//当前标签的下标
+            qr: false,// 是否确认信息填写完毕
+            Recordoptions: [],// 选择项目备案列表
+            multipleSelection: [], // 选择的级别/类别
+            additionals: [],//细则
+            dialogVisible: false,//分数分配界面
+            tableData: [],
+            // fileList: [], // 文件列表
+            selectedUsers: [], // 被选中过的申请人
+            searchedUsers: [], // 选择申请人列表
+            selectedId: '', // 选中申请人id
+            allSuccess: false,
+            isChecked: false,
+
+        },
+        filters: {
+            // 截取显示的字体
+            subString(value) {
+                var res = ""
+                for (let index in value) {
+                    res = res + " " + value[index].level
+                }
+                return res
+            },
+            subString2(value) {
+                // ["aaa","aaa"]
+                var res = value.toString()
+                if (!res) return "无";
+                return res
+            },
+            subString3(value) {
+                // ["aaa","aaa"]
+                var res = "个人"
+                if (value.length > 1) {
+                    res = "团体"
+                }
+                return res
+            },
+            subString4(value) {
+                var res = ""
+                for (let index in value) {
+                    res = res + " " + value[index].category
+                }
+                return res
+            },
+            subString5(value) {
+                if (!value) return "无";
+                return value;
+            }
+        },
+        created() {
+            this.user = JSON.parse(sessionStorage.getItem("user"));
+            this.searchedUsers[0] = this.user.user;
+            this.selectedUsers.push(this.user.user);
+            this.selectedId = this.user.user.id;
+        },
+        methods: {
+            // 是否确定关闭弹窗
+            handleClose(done) {
+                this.$confirm('是否取消填写？').then(_ => {done();}).catch(_ => {});
+                let tab = this.editableTabs[this.editableTabsValue];
+                tab.showfs = tab.xmfs;
+                tab.showfs = tab.showfs - tab.default_options.score;
+                for (let i in tab.peoples) {
+                    tab.showfs = tab.showfs - tab.peoples[i].score;
+                }
+            },
+            // 检查排名是否为整数
+            checkIfInteger() {
+                if (!Number.isInteger(this.editableTabs[this.editableTabsValue].xmschoolorder)) {
+                    this.$notify({
+                        title: '提示',
+                        message: '排名需为整数',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                }
+                if (!Number.isInteger(this.editableTabs[this.editableTabsValue].xmworkersorder)) {
+                    this.$notify({
+                        title: '提示',
+                        message: '排名需为整数',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                }
+            },
+            // 计算分数
+            async scoring(value) {
+                // if (!this.showErr()) {
+                //     return false;
+                // }
+                axios.post("../achievementApplyInfo/score", this.editableTabs[this.editableTabsValue]).then(res => {
+                    if (res.data.code == 1) {
+                        // this.editableTabs[this.editableTabsValue].showfs = res.data.data;
+                        // this.editableTabs[this.editableTabsValue].xmfs = res.data.data;
+                        this.editableTabs[value].showfs = res.data.data;
+                        this.editableTabs[value].xmfs = res.data.data;
+                    } else {
+                        this.$message("计算错误,请检查是否选择了项目级别、项目类别");
+                    }
+                    return true;
+                })
+            },
+            // 确定分数分配
+            cmfs() {
+                let tab = this.editableTabs[this.editableTabsValue];
+                if (tab.xmoneorteam === "0") {
+                    return true;
+                }
+                let res = 1;
+                if (tab.showfs != 0) {
+                    this.$notify({
+                        title: '提示',
+                        message: '您还有' + tab.showfs + '分可换钱的分数未进行分配，请分配完再进行确定',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                    return false;
+                } else {
+                    if (tab.default_options.score === "") {
+                        res = 0;
+                    }
+                    for (let i in tab.peoples) {
+                        if (tab.peoples[i].name.username === "" || tab.peoples[i].score === "") {
+                            res = 0;
+                            break;
+                        }
+                    }
+                    if (res == 0) {
+                        this.$notify({
+                            title: '提示',
+                            message: '请填写完整申请人信息,再进行下一步',
+                            position: 'top-left',
+                            type: 'error'
+                        });
+                        return false;
+                    } else {
+                        // 关闭团队科技分分配
+                        this.dialogVisible = false;
+                        return true;
+                    }
+                }
+            },
+            // 减去已分配的可换钱的分数
+            losefs(value) {
+                let tab = this.editableTabs[this.editableTabsValue];
+                let peoples = tab.peoples;
+                let host = tab.default_options;
+                let hostname = host.label.split(' ')[1];
+                for (let i = 0; i < peoples.length; i++) {
+                    if (peoples[i].name.username == hostname) {
+                        peoples[i].score = 0;
+                        this.$notify({
+                            title: '提示',
+                            message: '该队员为主持人，不可再选',
+                            position: 'top-left',
+                            type: 'error'
+                        });
+                        return;
+                    }
+                    for (let j = 0; j < peoples.length; j++) {
+                        if (i == j) {
+                            continue;
+                        }
+                        if (peoples[i].name.username == peoples[j].name.username) {
+                            peoples[j].score = 0;
+                            this.$notify({
+                                title: '提示',
+                                message: '不可选择相同的队员',
+                                position: 'top-left',
+                                type: 'error'
+                            });
+                            return;
+                        }
+                    }
+                }
+                if (!isNaN(Number(value))) {
+                    if (tab.showfs < 0) {
+                        this.$notify({
+                            title: '提示',
+                            message: '您可分配的分数不足，请重新调整成员分数分配',
+                            position: 'top-left',
+                            type: 'error'
+                        });
+                        tab.showfs = tab.xmfs;
+                        tab.showfs = tab.showfs - tab.default_options.score;
+                        for (let i in tab.peoples) {
+                            tab.showfs = tab.showfs - tab.peoples[i].score;
+                        }
+                    } else {
+                        tab.showfs = tab.xmfs;
+                        tab.showfs = tab.showfs - tab.default_options.score;
+                        for (let i in tab.peoples) {
+                            tab.showfs = tab.showfs - tab.peoples[i].score;
+                        }
+                    }
+                } else {
+                    this.$notify({
+                        title: '提示',
+                        message: '字数输入不正确，请输入数值（数字）',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                }
+
+            },
+            // 将选中的申请人放入搜索中
+            selectedUser(value) {
+                // 过滤重复的元素
+                for (let i = 0; i < this.selectedUsers.length; i++) {
+                    if (this.selectedUsers[i].username == value.username) {
+                        return;
+                    }
+                }
+                this.selectedUsers.push(value);
+                let user = [];
+                let length = this.selectedUsers.length;
+                for (let l = 0; l < length; l++) {
+                    if (!user.includes(this.selectedUsers[l].id)) {
+                        user.push(this.selectedUsers[l].id);
+                    }
+                }
+                this.selectedId = user.join(",");
+            },
+            // 输入下拉框时查询
+            inputQuery(value) {
+                // 如果数字超过5个就查询
+                if (value.match(/\d{5}/)) {
+                    axios.get("../gainApply/user", {
+                        params: {
+                            username: value
+                        }
+                    }).then(res => {
+                        if (res.data.code == 1) {
+                            this.searchedUsers = res.data.data;
+                            for (let i = 0; i < this.selectedUsers.length; i++) {
+                                this.searchedUsers.push(this.selectedUsers[i]);
+                            }
+                        } else {
+                            this.searchedUsers = []
+                        }
+                    })
+                } else if (!value.match(/\d/) && value.length != 0) {
+                    // 不为数字就直接通过名字查询
+                    axios.get("../gainApply/user", {
+                        params: {
+                            nickname: value
+                        }
+                    }).then(res => {
+                        if (res.data.code == 1) {
+                            this.searchedUsers = res.data.data;
+                            for (let i = 0; i < this.selectedUsers.length; i++) {
+                                this.searchedUsers.push(this.selectedUsers[i]);
+                            }
+                        } else {
+                            this.searchedUsers = []
+                        }
+                    })
+                }
+            },
+            handleTabsEdit(currentName, action) {
+                const _this = this;
+                //添加标签页
+                if (currentName === 'add') {
+                    if ((_this.editableTabs.length) <= 5) {
+                        let newTabIndex = ++_this.tabIndex + '';
+                        _this.editableTabs.push({
+                            title: '新建申报' + this.chinesedata[_this.tabIndex],
+                            trtid: "", //项目类型id
+                            name: newTabIndex,
+                            activeName: '1',// 折叠面板参数
+                            xmname: "", // 项目名称
+                            xmcontent: "", // 获奖形式及内容
+                            xmdepartment: "", // 项目批准单位
+                            xmpeople: "", // 申请人
+                            xmfirstSign: '1',//我校是否是第一单位
+                            isOrder: false,//是否显示排名
+                            xmschoolorder: 0,//我校排名
+                            xmworkersorder: 0,//教职工排名
+                            xmoneorteam: "0",//团队还是个人
+                            xmRecord: "", // 项目备案
+                            xmremark: "", // 项目备注
+                            xmawardlevel: "",// 获奖等级
+                            xmselectedProject: [],//选中的项目
+                            additional: "",//附则id
+                            content: "", // 附则信息
+                            ratio: 1, // 计算比率
+                            scoreType: "", // 附则类型
+                            addScore: 0, // 累加分数
+                            xmadditionals: {}, //附则对象
+                            showfs:0, //团队待分配的分数
+                            xmfs: 0, // 项目总分
+                            default_options: {label: "", score: 0},//主持人信息
+                            peoples: [], // 选择申请人列表
+                            fileList: [],// 文件列表
+                            allfinish: 0,
+                            score: 0, // 计算分数
+                            scoreInfo: "", // 分配详情
+                            selectTypeId: '', // 选中的项目级别
+                            selectId: '', // 选中的项目
+                            selectedRecord: '', // 选中项目备案id
+                            sid: "", //申请人id
+                        });
+                        _this.editableTabsValue = newTabIndex;
+                        _this.user = JSON.parse(sessionStorage.getItem("user"));
+                        _this.searchedUsers[0] = this.user.user;
+                        _this.selectedUsers.push(this.user.user);
+                        _this.selectedId = this.user.user.id;
+                        _this.addnowPeople();
+                        // let tab = this.editableTabs[this.editableTabsValue];
+                        // // 设置默认申请人
+                        // var item = sessionStorage.getItem("user");
+                        // var parse = JSON.parse(item);
+                        // var nickname = parse.user.nickname;
+                        // var username = parse.user.username;
+                        // tab.xmpeople = nickname + " " + username;
+                        // tab.default_options.label = nickname + " " + username;
+                        // tab.default_options.score = 0;
+                    } else {
+                        _this.$notify({
+                            title: '温馨提示',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="margin-top: -5px;font-weight: bold">一次只能申请6个!</p>',
+                            position: 'top-left'
+                        });
+                    }
+                    return false;
+                } else {
+                    _this.editableTabsValue = currentName;
+                }
+            },
+            // 删除标签页
+            removeTab(targetName) {
+                const _this = this;
+                if (_this.editableTabs.length <= 1) {
+                    _this.$notify({
+                        title: '温馨提示',
+                        dangerouslyUseHTMLString: true,
+                        message: '<p style="margin-top: -5px;font-weight: bold">最后一个了哦,不允许删除!</p>',
+                        position: 'top-left'
+                    });
+                    return false;
+                }
+                let tabs = _this.editableTabs;
+                _this.editableTabs = tabs.filter(tab => tab.name !== targetName);
+                for (let i = 0; i < _this.editableTabs.length; i++) {
+                    if (_this.editableTabs[i].name != i) {
+                        _this.editableTabs[i].name = i + '';
+                        _this.editableTabs[i].title = "新增申报" + this.chinesedata[i];
+                    }
+                }
+                _this.editableTabsValue = _this.editableTabs[_this.editableTabs.length - 1].name;
+                _this.tabIndex = (_this.editableTabs.length - 1);
+            },
+            // 是否确保信息无误与填写完整
+            async handleCheckedCitiesChange() {
+                if (!await this.isSubmit()) {
+                    this.isChecked = false;
+                    this.qr = false;
+                    return;
+                }
+                this.qr = !this.qr;
+                for (let i = 0; i < this.editableTabs.length; i++) {
+                    if (this.editableTabs[i].xmoneorteam === "0") {
+                        this.scoring(i);
+                    }
+                }
+            },
+            // 是否能够提交
+            async isSubmit(){
+                var can = 1;// 0为不可提交 1为可提交
+                var errortext = "";
+                this.editableTabs.forEach((item,index)=>{
+                    if (!item.xmname){errortext=errortext+item.title+'的项目名称，';can = 0;}
+                    if (!item.xmdepartment){errortext=errortext+item.title+'的批准单位，';can = 0;}
+                    if (!item.xmcontent){errortext=errortext+item.title+'的获奖形式与内容，';can = 0;}
+                    if (!item.xmfirstSign){errortext=errortext+item.title+'的申报单位，';can = 0;}
+                    if (!item.selectId){errortext=errortext+item.title+'的项目，';can=0;}
+                    if (!item.xmawardlevel){errortext=errortext+item.title+'的获奖等级，';can = 0;}
+                    if (item.peoples.length < 0){errortext=errortext+item.title+'的申请人，';can = 0;}
+                    if (item.showfs !== 0 && item.xmoneorteam === "1"){errortext=errortext+item.showfs+'的分数未分配，';can = 0;}
+                    if (item.content.indexOf("按我校排名次序m，教职工的排名次序n") !== -1 && item.xmschoolorder === 0 && item.xmworkersorder === 0 ){
+                        errortext=errortext+item.title+'的排名，';can = 0;
+                    }
+                })
+
+                if (can == 0){
+                    this.$notify({
+                        title: '温馨提示',
+                        message: '系统检测您有以下信息未进行填写：'+ errortext +'请填写后再进行提交。',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                    return false;
+                }
+                return true;
+            },
+            async commit(row) {
+                await this.submit();
+                setTimeout(tmp => {
+                    if (this.allSuccess){
+                        window.parent.postMessage({url:"project_application/toProject_apply"}, "*");
+                    }
+                }, 4000)
+            },
+            async submit() {
+                let userId = JSON.parse(sessionStorage.getItem("user")).user.id;
+                for (let i = 0; i < this.editableTabs.length; i++) {
+                    let params = new FormData();
+                    let tab = this.editableTabs[i];
+                    tab.fileList.forEach(file => {
+                        params.append("files", file.raw);
+                    })
+
+                    let host = tab.default_options;
+                    tab.scoreInfo = "";
+                    tab.sid = "";
+                    if(tab.xmoneorteam === "0"){
+                        host.score = tab.xmfs;
+                        tab.scoreInfo += userId + "::" + parseFloat(host.score);
+                        tab.sid += userId;
+                    }else if(tab.xmoneorteam === "1"){
+                        tab.scoreInfo += userId + "::" + parseFloat(host.score) + ";";
+                        tab.sid += userId + ",";
+                        let peoples = tab.peoples;
+                        for (let i in peoples) {
+                            tab.scoreInfo += peoples[i].name.id + "::" + parseFloat(peoples[i].score) + ";";
+                            tab.sid += peoples[i].name.id + ",";
+                        }
+                    }
+
+                    let applyVo = {
+                        awardContent: tab.xmcontent,
+                        dept: tab.xmdepartment,
+                        name: tab.xmname,
+                        level: tab.xmawardlevel,
+                        firstSign: tab.xmfirstSign,
+                        xmschoolorder: tab.xmschoolorder,
+                        xmworkersorder: tab.xmworkersorder,
+                        according: "科研成果奖的科技工作量计算标准：" + tab.content,
+
+                        trtid: tab.trtid,
+                        file: tab.file,
+                        sid: tab.sid,
+                        cash: tab.cash,
+                        team: tab.xmoneorteam,
+                        recordid: tab.selectedRecord,
+                        remarks: tab.xmremark,
+                        leid: tab.selectTypeId,
+                        childid: tab.selectId,
+                        content: tab.content,
+                        ratio: tab.ratio,
+                        scoreInfo: tab.scoreInfo,
+
+                    };
+
+                    let json = JSON.stringify(applyVo)
+                    params.append("applyVo", json);
+                    axios.post("../achievementApplyInfo/add", params, {
+                        headers: {
+                            "Content-Type": "multipart/form-data" // 设置请求头
+                        }
+                    }).then(res => {
+                        if (res.data.code == 1) {
+                            // 上传成功
+                            this.$notify({
+                                title: '',
+                                dangerouslyUseHTMLString: true,
+                                message: '<p style="color: #33ce0c;margin-top: -5px;font-weight: bold">提交成功！</p>',
+                                position: 'top-left'
+                            });
+                            if (this.editableTabs.length > 1){
+                                this.removeTab(i);
+                            }
+                            this.allSuccess = true;
+                        }else {
+                            this.allSuccess = false;
+                            this.$message({message: res.data.msg, type: "error"})
+                        }
+                    })
+                }
+            },
+            // 选中行改变事件
+            handleSelectionChange(selection) {
+                let tab = this.editableTabs[this.editableTabsValue];
+                if (selection.length > 0) {
+                    const uniqueLeidValues = [...new Set(selection.map(item => item.leid))];
+                    if (uniqueLeidValues.length === selection.length) {
+                        const firstCashValue = selection[0].cash;
+                        tab.cash = firstCashValue;
+                        const validCashSelection = selection.filter(item => item.cash === firstCashValue);
+                        if (validCashSelection.length === selection.length) {
+                            tab.xmselectedProject = selection;
+                        } else {
+                            this.$notify({
+                                title: '提示',
+                                message: "只能选择可换钱或不可换钱一种，不可两种都选",
+                                position: 'top-left',
+                                type: 'error'
+                            });
+                            this.$nextTick(() => {
+                                let multipleTable = this.$refs.multipleTable;
+                                if (multipleTable && multipleTable.clearSelection) {
+                                    multipleTable.clearSelection();
+                                } else {
+                                    // 尝试手动清除选中状态
+                                    this.tableData.forEach(row => {
+                                        this.$set(row, 'selected', false);
+                                    });
+                                }
+                                // 更新表格的数据，强制重新渲染
+                                this.tableData = [...this.tableData];
+                            });
+                            return; // 不符合条件，禁止选择并提前结束函数
+                        }
+                    } else {
+                        this.$notify({
+                            title: '提示',
+                            message: "同一级别只可选一种",
+                            position: 'top-left',
+                            type: 'error'
+                        });
+                        this.$nextTick(() => {
+                            let multipleTable = this.$refs.multipleTable;
+                            if (multipleTable && multipleTable.clearSelection) {
+                                multipleTable.clearSelection();
+                            } else {
+                                // 尝试手动清除选中状态
+                                this.tableData.forEach(row => {
+                                    this.$set(row, 'selected', false);
+                                });
+                            }
+                            // 更新表格的数据，强制重新渲染
+                            this.tableData = [...this.tableData];
+                        });
+                        return; // 不符合条件，禁止选择并提前结束函数
+                    }
+                } else {
+                    tab.xmselectedProject = [];
+                }
+
+                let uniqueLeids = [], ids = [];
+                let length = tab.xmselectedProject.length;
+                for (let l = 0; l < length; l++) {
+                    ids.push(tab.xmselectedProject[l].id);
+                    if (!uniqueLeids.includes(tab.xmselectedProject[l].leid)) {
+                        uniqueLeids.push(tab.xmselectedProject[l].leid);
+                    }
+                }
+                tab.selectId = ids.join(",");
+                tab.selectTypeId = uniqueLeids.join(",");
+                let score = 0; // 计算待分配的分数
+                for (let i = 0; i < selection.length; i++) {
+                    score += selection[i].score;
+                }
+                tab.score = score;
+
+                //this.multipleSelection = val;
+                //this.showtopart3btn = true;
+
+            },
+            // 查询所有科技成果奖信息
+            selectAchievement() {
+                axios.get("../achievementStandard/get/-100/1").then(res => {
+                    if (res.data.code == 1) {
+                        this.tableData = res.data.data.data;
+                        if(this.tableData.length > 0){
+                            this.editableTabs[this.editableTabsValue].trtid = this.tableData[0].trid;
+                        }
+                    } else {
+                        this.$notify({title: '提示', message: res.msg, position: 'top-left', type: 'error'});
+                    }
+                });
+            },
+            // 查询相同类型级别的未使用项目备案
+            selectRecord() {
+                let userId = JSON.parse(sessionStorage.getItem("user")).user.id;
+                axios.get("../achievementApplyInfo/findRecord?standardType=" + this.editableTabs[this.editableTabsValue].selectTypeId + "&standardId=" + this.editableTabs[this.editableTabsValue].trtid + "&createBy=" + userId).then(res => {
+                    if (res.data.code == 1) {
+                        this.Recordoptions = res.data.data;
+                    } else {
+                        this.Recordoptions = [];
+                    }
+                })
+            },
+            addnowPeople() {
+                let tab = this.editableTabs[this.editableTabsValue];
+                // 设置默认申请人
+                var item = sessionStorage.getItem("user");
+                var parse = JSON.parse(item);
+                var nickname = parse.user.nickname;
+                var username = parse.user.username;
+                tab.xmpeople = nickname + " " + username;
+                tab.default_options.label = nickname + " " + username;
+                tab.default_options.score = 0;
+                if(this.tableData.length > 0){
+                    tab.trtid = this.tableData[0].trid;
+                }
+            },
+            // 查询附则信息
+            queryAdditional() {
+                axios.get("../additional_rules/get/" + this.tableData[0].trid).then(res => {
+                    if (res.data.code == 1) {
+                        this.additionals = res.data.data;
+                    } else {
+                        this.additionals = [];
+                    }
+                })
+            },
+            handleChangeFile(file, fileList) {
+                //文件上传方法 限制文件上传类型与大小
+                const allowedExtensions = ['jpg', 'png', 'pdf', 'doc', 'docx'];
+                const fileExtension = file.name.split('.').pop();
+                if (file.size / 1024 / 1024 < 5 && allowedExtensions.includes(fileExtension.toLowerCase())) {
+                    this.editableTabs[this.editableTabsValue].fileList.push(file);
+                } else {
+                    if (file.size / 1024 / 1024 >= 5) {
+                        // 错误时显示的信息
+                        this.$notify({
+                            title: '',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">文件过大</p>',
+                            position: 'top-left'
+                        });
+                    } else {
+                        // 错误时显示的信息
+                        this.$notify({
+                            title: '',
+                            dangerouslyUseHTMLString: true,
+                            message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">不支持该文件类型</p>',
+                            position: 'top-left'
+                        });
+                    }
+                    this.handleRemove(file);
+                }
+            },
+            handleRemove(file, fileList) {
+                // 删除文件
+                this.editableTabs[this.editableTabsValue].fileList =
+                    this.editableTabs[this.editableTabsValue].fileList.filter((f) => file.name !== f.name);
+                // 强制刷新组件以更新文件列表
+                this.$forceUpdate();
+            },
+            handleExceed(files, fileList) {
+                //文件超出方法
+                this.$notify({
+                    title: '',
+                    dangerouslyUseHTMLString: true,
+                    message: '<p style="color: #cc0000;margin-top: -5px;font-weight: bold">最多只能上传10个文件</p>',
+                    position: 'top-left'
+                });
+            },
+            // 在删除文件前的操作
+            beforeRemove(file, fileList) {
+                return this.$confirm(`确定移除 ${file.name}？`);
+            },
+            handelCurrentCollapse(activeNames) {
+                //选中类别选择时 加载 细则
+                if (activeNames == '2') {
+                    this.queryAdditional();
+                }
+            },
+            // 选择成员与分数分配
+            pdlory() {
+                let tab = this.editableTabs[this.editableTabsValue];
+                if(tab.content.indexOf("按我校排名次序m，教职工的排名次序n") !== -1 && tab.xmschoolorder === 0 && tab.xmworkersorder === 0 ){
+                    this.$notify({
+                        title: '提示',
+                        message: '请先选择排名，排名不能为0',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                    return;
+                }
+                this.scoring(this.editableTabsValue);
+
+                tab.showfs = tab.xmfs;
+                tab.showfs = tab.showfs - tab.default_options.score;
+                for (let i in tab.peoples) {
+                    tab.showfs = tab.showfs - tab.peoples[i].score;
+                }
+                //打开团队科技分分配
+                this.dialogVisible = true;
+            },
+
+            changeRecord(value) {
+                // if (this.editableTabs.some(tab => tab.selectedRecord === value)) {
+                //     this.$notify({ title: '提示', message: '该备案已被选择', position: 'top-left', type: 'error' });
+                //     this.editableTabs[this.editableTabsValue].xmRecord = "";
+                // } else {
+                    this.editableTabs[this.editableTabsValue].selectedRecord = value;
+                // }
+            },
+            // 选择项目附则
+            changeAdditional(value) {
+                let tab = this.editableTabs[this.editableTabsValue];
+                tab.ratio = 1;
+                let suit = true;
+                // 如果我校不是第一申报单位，则项目附则只能选择申报科研成果奖，与外单位合作，如注明我校是获奖单位，按我校排名次序m，教职工的排名次序n，取上述相应类别科技工作量的1/(m*n)进行计算。
+                if (tab.xmfirstSign !== '1') {
+                    if (value.includes(this.additionals[0].rid)) {
+                        suit = false;
+                        value = value.filter(item => item !== this.additionals[0].rid);
+                    }
+                    if (value.includes(this.additionals[1].rid)) {
+                        suit = false;
+                        value = value.filter(item => item !== this.additionals[1].rid);
+                    }
+                    if (value.includes(this.additionals[2].rid)) {
+                        suit = false;
+                        value = value.filter(item => item !== this.additionals[2].rid);
+                    }
+                    if (value.includes(this.additionals[3].rid)) {
+                        suit = false;
+                        value = value.filter(item => item !== this.additionals[3].rid);
+                    }
+                }
+
+                if(tab.selectId != ''){
+                    // 项目级别不为国家级自然科学类，不能选择申报国家级自然科学类、哲学社会科学类科研成果奖，计200分
+                    if (![2, 3, 4].some(id => tab.selectId.includes(id))) {
+                        if (value.includes(this.additionals[2].rid)) {
+                            suit = false;
+                            value = value.filter(item => item !== this.additionals[2].rid);
+                        }
+                    }
+                    // 项目级别不为省（部）级自然科学类，不能选择申报省（部）级自然科学类、哲学社会科学类科研成果奖，计100分
+                    if (![6, 7, 8].some(id => tab.selectId.includes(id))) {
+                        if (value.includes(this.additionals[3].rid)) {
+                            suit = false;
+                            value = value.filter(item => item !== this.additionals[3].rid);
+                        }
+                    }
+                }
+
+                if(!suit){
+                    this.$notify({
+                        title: '提示',
+                        message: '选项与已选的选项不符',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                }else{
+                }
+
+                let selectedAdditionals = this.additionals.filter(item => value.includes(item.rid));
+                tab.xmadditionals = selectedAdditionals;
+
+                tab.content = selectedAdditionals.map(item => item.showcontent).join(';');
+                for(let i = 0; i < selectedAdditionals.length; i++){
+                    if(selectedAdditionals[i].ratio){
+                        tab.ratio = selectedAdditionals[i].ratio;
+                    }
+                }
+                tab.addScore = selectedAdditionals.map(item => item.score || 0).join(';');
+
+                let contents = selectedAdditionals.map(item => item.content).join(';');
+                if (contents.indexOf("按我校排名次序m，教职工的排名次序n") !== -1) {
+                    tab.isOrder = true;
+                } else {
+                    tab.isOrder = false;
+                    tab.xmschoolorder = 0;
+                    tab.xmworkersorder = 0;
+                }
+                tab.additional = value; // 更新v-model绑定的值
+            },
+            addpeople() {
+                let tab = this.editableTabs[this.editableTabsValue];
+                // 添加成员
+                if (tab.showfs > 0) {
+                    tab.peoples.push({name: {nickname:"", username:""}, score: 0});
+                } else {
+                    this.$notify({
+                        title: '提示',
+                        message: '分数已分配完不可添加成员，如想继续添加成员请调整成员分数分配',
+                        position: 'top-left',
+                        type: 'error'
+                    });
+                }
+            },
+            deleteone(index) {
+                let tab = this.editableTabs[this.editableTabsValue];
+                // 删除成员
+                tab.peoples.splice(index, 1)
+                tab.showfs = tab.xmfs;
+                tab.showfs = tab.showfs - tab.default_options.score;
+                for (let i in tab.peoples) {
+                    tab.showfs = tab.showfs - tab.peoples[i].score;
+                }
+            }
+        },
+        mounted() {
+            this.selectAchievement();
+            this.addnowPeople();
+        }
+    })
+</script>
+</body>
+</html>

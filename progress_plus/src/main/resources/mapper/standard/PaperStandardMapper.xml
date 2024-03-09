@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.standard.mapper.PaperStandardMapper">
+    <select id="selectByPage" resultType="com.yc.standard.entity.PaperStandard">
+        select *
+        from user ${ew.customSqlSegment}
+    </select>
+    <select id="queryTypeId" resultType="java.lang.Integer">
+        select ps.psid from paper_standard ps where
+        <if test="common == '科技成果分数'">
+            ps.score = #{value}
+        </if>
+        <if test="common == '类别/级别'">
+            (select lname from tech_results_level where leid = ps.leid) = #{value}
+        </if>
+        <if test="common == '审核部门'">
+            ps.posit = #{value}
+        </if>
+    </select>
+    <select id="queryLevels" resultType="java.lang.String">
+        SELECT DISTINCT trl.lname
+        FROM paper_standard ps,
+             tech_results_level trl
+        WHERE ps.leid = trl.leid
+    </select>
+
+    <!-- 添加学术论文项目 -->
+    <insert id="addPaper">
+        insert into paper_standard (leid, score, cash, remarks, status, posit, trid, create_by, create_time,
+                                    update_by, update_time)
+        values (#{leid}, #{score}, #{cash}, #{remarks}, #{status}, #{posit}, #{trid}, #{createBy}, now(),
+                #{updateBy}, now())
+    </insert>
+
+    <!-- 查询学术论文 -->
+    <select id="selectPaper" resultType="com.yc.vo.EditProject">
+        select p.psid id, l.lname, l.leid, p.score, p.cash, p.remarks, p.posit, p.status, p.trid from paper_standard p,
+        tech_results_level l
+        where p.leid = l.leid
+        <if test="leid != null and leid != 'null' and leid != ''">
+            and p.leid = #{leid}
+        </if>
+    </select>
+
+    <!-- 修改学术专著项目 -->
+    <update id="updatePaper">
+        update paper_standard
+        set leid    = #{leid},
+            score   = #{score},
+            cash    = #{cash},
+            remarks = #{remarks},
+            status  = #{status},
+            posit   = #{posit},
+            trid    = #{trid},
+            update_by   = #{updateBy},
+            update_time = now()
+        where psid = #{id}
+    </update>
+</mapper>

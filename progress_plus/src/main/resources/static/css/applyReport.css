@@ -1,0 +1,147 @@
+html,body{
+  margin: 0px;
+  padding: 0px;
+}
+
+.el-header {
+  background-color: #303133;
+  color: #333;
+  text-align: center;
+  line-height: 60px;
+}
+ 
+.el-main {
+  background-color: #F2F6FC;
+  color: #333;
+  text-align: center;
+  padding: 10px;
+}
+ 
+body > .el-container {
+  margin-bottom: 40px;
+}
+ 
+/* 顶部 */
+.table {
+  color: #C0C4CC;
+  line-height: 60px;
+}
+.circle{
+    height: 60px;
+}
+.el-avatar{
+    margin: 5px 0 0 0;
+}
+
+
+/* app.vue */
+html,body{
+  margin: 0px;
+  padding: 0px;
+}
+.el-header {
+  background-color: #303133;
+  color: #333;
+  text-align: center;
+  line-height: 60px;
+}
+ 
+.el-aside {
+  background-color: #545c64;
+  color: #333;
+  text-align: center;
+  line-height: 200px;
+  height: 100vh;
+}
+ 
+.el-main {
+  background-color: #F2F6FC;
+  color: #333;
+  text-align: center;
+  padding: 10px;
+}
+ 
+body > .el-container {
+  margin-bottom: 40px;
+}
+ 
+.el-container:nth-child(5) .el-aside,
+.el-container:nth-child(6) .el-aside {
+  line-height: 260px;
+}
+ 
+.el-container:nth-child(7) .el-aside {
+  line-height: 320px;
+}
+
+
+/* CommonHeader  */
+.table {
+  color: #C0C4CC;
+  line-height: 60px;
+}
+.circle{
+    height: 60px;
+}
+.el-avatar{
+    margin: 5px 0 0 0;
+}
+
+/*  */
+/* Add "scoped" attribute to limit CSS to this component only */
+
+.el-card__body {
+    padding: 10px;
+}
+.userCard{
+  height: 180px;
+  display: flex;
+  border-bottom: 2px solid #DCDFE6;
+  border-radius: 2px;
+}
+.userInfo{
+  width: auto;
+  padding: 6% 0 0 6%;
+}
+.important-font{
+    font-weight: 900;
+    font-size: 25px;
+}
+.secondary-font{
+  color: #909399;
+}
+.login-info{
+  height: 40px;
+  text-align: left;
+  color: #909399;
+}
+.tableInfo{
+  margin: 20px 0 0 0;
+}
+.OrderCard{
+   margin: 0 0 30px 30px;
+   border: #DCDFE6 1px solid;
+   border-radius: 10px;
+   i{
+     width: 30%;
+     line-height: 60px;
+     font-size: 30px;
+     color:#fff
+   }
+   div{
+     width: 200px;
+   }
+}
+.el-card{
+  border: none;
+}
+.num{
+  display: flex;
+  flex-wrap: wrap;
+}
+.graph{
+  margin: 15px 0 0 0;
+}
+.el-calendar{
+  height: 265px ;
+}

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.ScoreApplyInfoMapper">
+    <!--学术专著专用-->
+    <insert id="BookApplyScore" parameterType="com.yc.apply.entity.ScoreApplyInfo">
+        INSERT INTO score_apply_info (
+            `gaid`,
+            `sysid`,
+            `host`,
+            `can_score`,
+            `cannot_score`,
+            `create_by`,
+            `create_time`,
+            `update_by`,
+            `update_time`
+        )
+        VALUES
+        (
+            #{gaid},
+            #{sysid},
+            1,
+            #{canScore},
+            #{cannotScore},
+            #{sysid},
+            now(),
+            #{sysid},
+            now()
+        );
+    </insert>
+
+    <!-- 添加科技分分配详情 -->
+    <insert id="addScoreInfo">
+        insert into score_apply_info(gaid, sysid, host, can_score, cannot_score, create_by, create_time, update_by,
+                                     update_time)
+        values (#{gaid}, #{sysid}, #{host}, #{canScore}, #{cannotScore}, #{createBy}, now(), #{updateBy}, now())
+    </insert>
+    <insert id="insertBatch">
+        insert into score_apply_info(gaid, sysid, host, can_score, cannot_score, create_by, create_time,
+        update_by, update_time)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.gaid},#{item.sysid},#{item.host},
+            #{item.canScore},#{item.cannotScore},#{user},
+            now(),#{user},now())
+        </foreach>
+    </insert>
+
+    <select id="queryDetails" resultType="com.yc.apply.entity.ScoreApplyInfo">
+        select gaid, sysid, IFNULL(can_score, 0) can_score, IFNULL(cannot_score, 0) cannot_score
+        from score_apply_info
+        where gaid = #{gaid}
+    </select>
+</mapper>

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yc.apply.mapper.DirectionApplyInfoMapper">
+
+    <!-- 添加纵向项目申请 -->
+    <insert id="addDirection">
+        insert into direction_apply_info(gaid, name, type, stage, leid, file, identifier, dept, according,
+                                         create_by, create_time, update_by, update_time, school, subject_category,
+                                         start_project_year,
+                                         belong_unit, start_time, plan_finish_time, total_fund,
+                                         receipt_total_fund, bear_unit, project_status, complete_time,
+                                         subject_type, national_economy_category)
+        values (#{gaid}, #{name}, #{type}, #{stage}, #{leid}, #{file}, #{identifier}, #{dept}, #{according},
+                #{createBy}, now(), #{updateBy}, now(), #{school}, #{subjectCategory}, #{startProjectYear},
+                #{belongUnit},
+                #{startTime}, #{planFinishTime}, #{totalFund}, #{receiptTotalFund}, #{bearUnit},
+                #{projectStatus},
+                #{completeTime}, #{subjectType}, #{nationalEconomyCategory})
+    </insert>
+
+    <insert id="insertBatch">
+        insert into direction_apply_info(gaid, name, type, stage, leid, file, identifier, dept, according, create_by,
+        create_time, school, subject_category, start_project_year, belong_unit,
+        declare_approve_time, start_time, plan_finish_time, total_fund, receipt_total_fund, bear_unit, project_status,
+        complete_time, subject_type, national_economy_category)
+        values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.gaid}, #{item.name}, #{item.type}, #{item.stage}, #{item.leid}, #{item.file}, #{item.identifier},
+            #{item.dept}, #{item.according},
+            #{user}, now(), #{item.school}, #{item.subjectCategory},
+            #{item.startProjectYear},
+            #{item.belongUnit},#{item.declareApproveTime},#{item.startTime}, #{item.planFinishTime}, #{item.totalFund}, #{item.receiptTotalFund},
+            #{item.bearUnit},
+            #{item.projectStatus},#{item.completeTime}, #{item.subjectType}, #{item.nationalEconomyCategory})
+        </foreach>
+    </insert>
+    <update id="changeScore">
+        update score_apply_info
+        set can_score = #{score}
+        where gaid = #{gaid}
+          and sysid = #{sid}
+    </update>
+    <select id="selectByPage" resultType="com.yc.apply.entity.DirectionApplyInfo">
+        select *
+        from direction_apply_info ${ew.customSqlSegment}
+    </select>
+
+    <select id="queryInventTypes" resultType="java.lang.String">
+        select distinct type
+        from direction_apply_info
+    </select>
+    <!--AND (concat( r.team_id, ',' ) REGEXP concat(
+        REPLACE ( ( SELECT GROUP_CONCAT( ssai.sysid ) FROM score_apply_info ssai WHERE ssai.gaid = ga.gaid ), ',', ',|' ),','))
+        AND (LENGTH( r.team_id ) = LENGTH( ( SELECT GROUP_CONCAT( ssai.sysid ) FROM score_apply_info ssai WHERE ssai.gaid =
+        ga.gaid )))-->
+    <!--共同字段：项目发表时间，是否批量加入，备注，项目状态，申请人名称，是否团队申请，备案名称-->
+    <!--纵向主键，纵向名称，纵向类型，纵向项目阶段，纵向文号，纵向项目编号，批准立项部门，团队成员-->
+    <select id="queryPaperHisPage" resultType="com.yc.vo.standard.DirectionHisPage">
+        SELECT
+        distinct dai.daiid,
+        dai.school,
+        dai.subject_category,
+        dai.start_project_year,
+        dai.belong_unit,
+        dai.declare_approve_time,
+        dai.start_time,
+        dai.plan_finish_time,
+        dai.total_fund,
+        dai.receipt_total_fund,
+        dai.bear_unit,
+        dai.project_status,
+        dai.complete_time,
+        dai.subject_type,
+        dai.national_economy_category,
+        dai.type,
+        dai.name,
+        dai.stage,
+        dai.file,
+        dai.identifier,
+        dai.dept,
+        dai.gaid,
+        ga.team,
+        <if test='status == "-1"'>
+            ga.rejection,
+        </if>
+        case when ga.recordid is not null then null
+        else (select r.team_id from record r where r.id = ga.recordid) end team_id,
+        (select count(pfid) from prove_file where useid = ga.gaid) file_num,
+        (select tname from labeldept where tid = (select tid from systemuser where id = ga.sid)) user_dept,
+        (SELECT GROUP_CONCAT(CONCAT((select nickname from systemuser where id =
+        sai.sysid),'::',IFNULL(can_score,0),'::',IFNULL(sai.cannot_score,0),'::',sai.`host`)) FROM
+        score_apply_info sai WHERE
+        ga.gaid = sai.gaid) scoreInfo,
+        ( SELECT cash FROM (SELECT cash, max( found_score ) FROM
+        direction_standard ds WHERE
+        FIND_IN_SET( ds.dsid, ga.childid )) s) cash,
+        ga.according,
+        ga.date time,
+        ga.sid,
+        ga.remarks,
+        (select lname from tech_results_level where leid = (select leid from invent_standard where iid = ga.childid))
+        level,
+        case when ga.status = 0 then '初审'
+        when ga.status = 1 then '复审'
+        when ga.status = 2 then '认可'
+        when ga.status = -1 then '不认可'
+        else NULL end status,
+        ( SELECT nickname FROM systemuser WHERE id = ga.sid ) username,
+        CASE WHEN ga.team = 1 THEN '是'
+        WHEN ga.team = 0 THEN
+        '否' ELSE NULL END isteam,
+        CASE WHEN ga.recordid IS NULL then NULL
+        ELSE (SELECT r.`name` FROM record r WHERE ga.recordid = r.id AND r.`status` = 1
+        AND (( ga.team = 1 and find_in_set(ga.sid,r.team_id))
+        OR ( ga.team = 0 AND ga.sid = r.team_id ))) END rname,
+        ga.recordid
+        FROM
+        direction_apply_info dai,
+        gain_apply ga,
+        record r
+        WHERE
+        dai.gaid = ga.gaid
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND (( ga.team = 1 and find_in_set(ga.sid,r.team_id))
+        OR ( ga.team = 0 AND ga.sid = r.team_id )) ) or ga.recordid is NULL)
+        AND ga.trtid = 1
+        <include refid="commonConditions"></include>
+        ORDER BY
+        ga.date DESC
+        <if test='begin != "-1" and size != "-1"'>
+            LIMIT #{begin},#{size}
+        </if>
+    </select>
+    <select id="queryCount" resultType="java.lang.Long">
+        SELECT
+        count(distinct ga.gaid)
+        FROM
+        direction_apply_info dai,
+        gain_apply ga,
+        record r
+        WHERE
+        dai.gaid = ga.gaid
+        AND ga.trtid = 1
+        and ((ga.recordid = r.id
+        and r.`status` = 1 AND find_in_set(ga.sid,r.team_id) and (
+        ga.team = 1 or ga.team = 0) ) or ga.recordid is NULL)
+        <include refid="commonConditions"></include>
+    </select>
+
+    <sql id="commonConditions">
+        <if test='status != "-2" and status != "" and status != null'>
+            and find_in_set(ga.`status` , #{status})
+        </if>
+        <if test='identifier == "0"'>
+            AND ((FIND_IN_SET(#{userId},(select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid =
+            ga.gaid)) and ga.team = 1) or (ga.team = 0 and ga.sid = #{userId}))
+        </if>
+        <if test='years != null and years != ""'>
+            AND find_in_set(year(ga.date),#{years})
+        </if>
+        <if test='dept!="" and dept != null and isDept == "1" and identifier == "1" and ((query == "0") or ((query == null or query == "") and deptName == "学科建设与发展规划处"))'>
+            AND FIND_IN_SET(
+            #{dept},(
+            SELECT
+            GROUP_CONCAT( ds.posit )
+            FROM
+            direction_standard ds
+            WHERE
+            FIND_IN_SET( ds.dsid, ga.childid )))
+        </if>
+        <if test='college!=null and college != "" and isDept == "1" and identifier == "1" and (query == null or query == "")'>
+            AND FIND_IN_SET(
+            #{college},(
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            direction_apply_info dai,
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='college!=null and college != "" and college != "" and isDept == "1" and identifier == "1" and query == "0"'>
+            AND #{college} = (select tid from governuser where id = #{userId})
+        </if>
+        <if test='dept!="" and dept != null and identifier == "1" and isDept == "0" and (query == null or query == "")'>
+            AND FIND_IN_SET(
+            #{dept},(=
+            SELECT
+            GROUP_CONCAT( s.tid )
+            FROM
+            systemuser s
+            WHERE
+            FIND_IN_SET( s.id, (select GROUP_CONCAT( ssai.sysid ) from score_apply_info ssai where ssai.gaid = ga.gaid)
+            )))
+        </if>
+        <if test='dept!="" and dept != null and isDept == "0" and identifier == "1" and query == "0"'>
+            AND #{dept} = (
+            SELECT
+            s.tid
+            FROM
+            systemuser s
+            WHERE
+            s.id = ga.sid )
+        </if>
+        <if test='commonLike!="" and commonLike != null'>
+            and (dai.type LIKE concat( '%', #{commonLike}, '%' )
+            OR dai.dept LIKE concat( '%', #{commonLike}, '%' ))
+        </if>
+        <if test='level!="" and level != null'>
+            AND FIND_IN_SET(
+            #{level},(
+            SELECT
+            GROUP_CONCAT( trl.lname )
+            FROM
+            tech_results_level trl
+            WHERE
+            FIND_IN_SET(
+            trl.leid,(
+            SELECT
+            GROUP_CONCAT( ds.leid )
+            FROM
+            direction_standard ds
+            WHERE
+            FIND_IN_SET( ds.dsid, ga.childid )))))
+        </if>
+    </sql>
+</mapper>

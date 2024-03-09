@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="common/header :: head"></head>
+<style type="text/css">
+    .add_application .el-row{margin-top: 10px;margin-bottom: 10px;}
+    .el-dialog__body{padding: 10px 20px !important;}
+    .el-upload-dragger {width: 330px !important;height: 100px !important;}
+    .el-icon-upload {height: 37px;}
+    .el-upload-dragger .el-icon-upload {margin: 0px;}
+    .el-icon-upload:before {font-size: 42px;}
+    .el-upload-list {text-align: left;}
+    .el-pagination{margin-left:35%}
+</style>
+<body>
+<div id="app">
+    <div>
+        <div style="width: 250px;display: inline-block;">
+            <el-input size="small" placeholder="请输入备案名称" style="width: 250px;" v-model="nameQuery" clearable></el-input>
+        </div>
+        <el-button type="primary" size="small" style="margin-left: 20px;" @click="selectRecord">查询备案</el-button>
+        <el-button type="primary" size="small" style="margin-left: 20px;" @click="saveRecordDialg">新增备案</el-button>
+    </div>
+
+    <el-dialog title="新增备案" width="45%" top="2%" :visible.sync="dialogVisible" :before-close="handleClose">
+        <div style="width: 100%;padding-left: 10%;" class="add_application">
+            <el-form :model="form" label-position="top" style="margin-top: 15px">
+                <el-row >
+                    <el-col :span="4"><span style="color: red;">*</span>备案名称:</el-col>
+                    <el-col :span="18">
+                        <el-input v-model="name" size="small" placeholder="请填写备案名称"  style="width: 350px;"/>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>成果类型:</el-col>
+                    <el-col :span="18">
+                        <el-select size="small" v-model="values" placeholder="请选择" style="width: 350px;" @change="handleChange">
+                            <el-option v-for="item in options"
+                                       :key="item.value" :label="item.label" :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>成果级别:</el-col>
+                    <el-select size="small" v-model="valuesLname" placeholder="请选择" style="width: 350px;" @change="handleChangeLname">
+                        <el-option v-for="item in options_1" :key="item.value"
+                                   :label="item.label" :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>团队成员:</el-col>
+                    <el-col :span="18">
+                        <el-select size="small" style="width:350px;" v-model="teamPeople" multiple filterable
+                                   default-first-option placeholder="请输入或选择成员" :filter-method="filterMethod">
+                            <el-option v-for="item in options_pro" :key="item.value" :label="item.label" :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-col>
+                </el-row>
+                <p style="color:#909399;">温馨提示: 备案主持人默认为当前申请用户,在下拉框中输入名字/工号搜索 </p>
+                <el-row>
+                    <el-col :span="4">&nbsp;备案详细:</el-col>
+                    <el-col :span="18">
+                        <el-input type="textarea" :rows="2" placeholder="请描述备案详细" style="width: 350px;" v-model="textarea" class="custom-textarea"/>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>上传附件:</el-col>
+                    <el-col :span="18">
+                        <el-upload
+                                class="upload-demo custom-upload"
+                                drag
+                                :auto-upload="false"
+                                :on-change="handleChangeFile"
+                                action="#"
+                                accept=".pdf,.jpg,.doc,.png,.docx"
+                                multiple
+                                ref="upload"
+                                :limit="10"
+                                :on-exceed="handleExceed"
+                                :on-preview="handlePreview"
+                                :on-remove="handleRemove"
+                                :before-remove="beforeRemove"
+                                :file-list="fileList_pro">
+                            <i class="el-icon-upload"></i>
+                            <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                            <div class="el-upload__tip" slot="tip">只能上传jpg/png/pdf/word文件，且不超过5M</div>
+                        </el-upload>
+                    </el-col>
+                </el-row>
+            </el-form>
+        </div>
+        <span slot="footer" class="dialog-footer">
+            <el-button @click="closeDialog" size="small" class="custom-cancel-button">取 消</el-button>
+            <el-button type="primary" size="small" class="custom-confirm-button" style="margin-left: 30px" @click="uploadfile">确 定</el-button>
+        </span>
+    </el-dialog>
+
+    <el-dialog title="修改备案" width="45%" top="2%" :visible.sync="dialogVisible_upadte" :before-close="handleClose">
+        <div style="width: 100%;padding-left: 10%;" class="add_application">
+            <el-form :model="FormData" label-position="top" style="margin-top: 15px">
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>备案名称:</el-col>
+                    <el-col :span="18">
+                        <el-input v-model="FormData.name" size="small" placeholder="请填写备案名称" style="width: 350px;margin-bottom: 8px"/>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>成果类型:</el-col>
+                    <el-col :span="18">
+                        <el-select size="small" v-model="FormData.trid" placeholder="请选择" style="width:350px" @change="handleChangeUpadte">
+                            <el-option v-for="item in options" :key="item.value"
+                                       :label="item.label" :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>成果级别:</el-col>
+                    <el-select size="small" v-model="FormData.leid" placeholder="请选择" style="width: 350px;" @change="handleChangeLnameUpdate">
+                        <el-option v-for="item in options_1" :key="item.value"
+                                   :label="item.label" :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-row>
+                <el-row>
+                    <el-col :span="4"><span style="color: red;">*</span>团队成员:</el-col>
+                    <el-col :span="18">
+                        <el-select size="small" style="width:350px;" v-model="FormData.teamNames" multiple filterable
+                                   default-first-option placeholder="请输入或选择成员" :filter-method="filterMethod_update">
+                            <el-option v-for="item in options_pro" :key="item.value" :label="item.label" :value="item.value">
+                            </el-option>
+                        </el-select>
+                    </el-col>
+                </el-row>
+                <p style="color:#909399;">温馨提示: 备案主持人默认为当前申请用户,在下拉框中输入名字/工号搜索 </p>
+                <el-row>
+                    <el-col :span="4">&nbsp;备案详细:</el-col>
+                    <el-col :span="18">
+                        <el-input type="textarea" :rows="2" placeholder="请描述备案详细" style="width: 350px;" v-model="FormData.description" class="custom-textarea"/>
+                    </el-col>
+                </el-row>
+                <el-row>
+                    <el-col :span="4">&nbsp;上传附件:</el-col>
+                    <el-col :span="18">
+                        <el-upload class="upload-demo custom-upload" drag :auto-upload="false"
+                                   :on-change="handleChangeFileUpdate" action="#" accept=".pdf,.jpg,.doc,.png,.docx"
+                                   multiple ref="upload" :limit="10" :on-exceed="handleExceed"
+                                   :on-preview="handlePreview" :on-remove="handleRemoveUpdate" :before-remove="beforeRemove"
+                                   :file-list="fileList">
+                            <i class="el-icon-upload"></i>
+                            <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                            <div class="el-upload__tip" slot="tip">只能上传jpg/png/pdf/word文件，且不超过5M</div>
+                        </el-upload>
+                    </el-col>
+                </el-row>
+            </el-form>
+        </div>
+        <span slot="footer" class="dialog-footer">
+            <el-button size="small" @click="dialogVisible_upadte = false" class="custom-cancel-button">取 消</el-button>
+            <el-button type="primary" size="small" class="custom-confirm-button" style="margin-left: 30px" @click="UpdateRecord(FormData.id)">确 定</el-button>
+        </span>
+    </el-dialog>
+    <div style="margin-top: 10px;">
+        <template>
+            <el-tabs v-model="radio" type="border-card" @tab-click="handleClick">
+                <el-tab-pane :label="'待审核 ' + total0" name="0"></el-tab-pane>
+                <el-tab-pane :label="'已通过 ' + total1" name="1"></el-tab-pane>
+                <el-tab-pane :label="'未通过 ' + total2" name="2"></el-tab-pane>
+            </el-tabs>
+            <el-table :data="MytableData" :key="tableKey" :height="publicHeight" style="width: 100%;margin-top: -30px;" >
+                <el-table-column label="备案信息" align="center">
+                    <template slot-scope="scope">
+                        <div >
+                            <el-row style="padding: 5px 0px;border: 1px solid #919191;padding-left: 10px;text-align: left;">
+                                <el-col :span="24">
+                                    <span style="font-size: 18px;font-weight: bold;margin-right: 20px;color: #409EFF;">{{ scope.row.name }}</span>
+                                    <span>申请日期&nbsp;&nbsp;{{ scope.row.date }}</span>
+                                </el-col>
+                            </el-row>
+                            <el-row style="padding: 3px 0px;border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2">类&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;型 :</el-col>
+                                <el-col :span="22" style="text-align: left;font-weight: bold;">
+                                    <span>{{ scope.row.trname }} -- {{ scope.row.lname }}</span>
+                                </el-col>
+                            </el-row>
+                            <el-row style="border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2" style="padding: 3px;">附件信息 :</el-col>
+                                <el-col :span="9" style="padding: 3px;border-right: 1px solid #919191; ">
+                                    <div class="demo-image" style="float: left;">
+                                        <div class="block" style="display: inline-block;" v-for="url in scope.row.images.slice(0,3)" :key="url">
+                                            <el-image scroll-container=".el-table__body-wrapper"
+                                                      style="width: 60px; height:60px;margin-right: 5px;border: 1px solid #E4E7ED;"
+                                                      :preview-src-list="scope.row.images" :initial-index="url" :src="url" fit="cover"
+                                                      lazy="true"></el-image>
+                                        </div>
+                                    </div>
+                                    <div style="float: left;margin-top: 36px;margin-left: 10px;">
+                                        <el-button size="mini" v-if="scope.row.status==0 || scope.row.status==2" type="success"
+                                                   @click="queryFilePath(scope.$index, scope.row.id)">更多附件</el-button>
+
+                                        <el-button size="mini" v-if="scope.row.status==1" type="primary"
+                                                   @click="loadRecord(scope.$index, scope.row)">下载附件</el-button>
+                                    </div>
+                                </el-col>
+                                <el-col :span="2" style="padding: 3px;">团队/个人 :</el-col>
+                                <el-col :span="9" style="padding: 3px;text-align: left;">
+                                    <span v-for="(item,index) in scope.row.teamName">
+                                        <span v-if="index == 0" style="margin-right: 10px;">
+                                            <el-tag size="small" type="danger" style="margin-bottom: 5px;">{{item.nickname}}{{item.username}}</el-tag>
+                                        </span>
+                                        <span v-else style="margin-right: 10px;margin-bottom: 5px;">
+                                            <el-tag size="small" style="margin-bottom: 5px;">{{item.nickname}}{{item.username}}</el-tag>
+                                        </span>
+                                    </span>
+                                </el-col>
+                            </el-row>
+
+                            <el-row style="padding: 3px;border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2">备&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;注 :</el-col>
+                                <el-col :span="22" style="text-align: left;">{{ scope.row.description }}</el-col>
+                            </el-row>
+
+                            <el-row style="padding: 3px;border: 1px solid #919191;border-top: 0px;">
+                                <el-col :span="2">结果反馈 :</el-col>
+                                <el-col :span="22" style="text-align: left;">{{ scope.row.rejection }}</el-col>
+                            </el-row>
+                        </div>
+                    </template>
+                </el-table-column>
+                <!-- 操作 -->
+                <el-table-column label="操作" fixed="right" width="180">
+                    <template slot-scope="scope">
+                        <el-button size="mini" v-if="scope.row.status==2" type="success"
+                                   @click="renameRecord(scope.$index, scope.row.id)">编辑备案
+                        </el-button>
+                        <el-button size="mini" v-if="scope.row.status==0" type="danger"
+                                   @click="open(scope.$index, scope.row.id)">撤回备案
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </template>
+        <div style="background-color: white;padding: 3px 0px;">
+            <el-pagination
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :current-page="pageNum"
+                    :page-sizes="[5, 10, 20, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total">
+            </el-pagination>
+        </div>
+        <el-dialog title="更多附件" :close-on-click-modal="false" :visible.sync="dialogVisibleQuery" width="50%">
+            <div v-for="(file, index) in fileListFilePath" :key="index" class="file-item">
+                <el-row style="margin: 10px 0px;">
+                    <el-col :span="18">
+                        <img th:src="@{/images/filelistlogo.png}" style="width: 20px;margin-left: 10px">
+                        <a style="margin-left: 5px;color: rgb(64,64,64)">{{ file.name }}</a>
+                    </el-col>
+                    <el-col :span="5">
+                        <img th:src="@{/images/download.png}" style="width: 18px;margin-left: 10px;margin-top:5px;
+                float: right;margin-right: 14px;cursor: pointer;" @click="imgDownload(file)">
+                        <a @click="handlePreview(file)" style="float: right;margin-top: 3px;cursor: pointer;">查看</a>
+                    </el-col>
+                </el-row>
+            </div>
+        </el-dialog>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/filing/filing_application.js}"></script>
+</body>
+</html>
